@@ -1,0 +1,9 @@
+{
+  "name": "business",
+  "description": "Hệ thống an ninh AI cao cấp bảo vệ gia đình khỏi Deepfake và lừa đảo trực tuyến.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera",
+    "geolocation"
+  ]
+}

@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    
+    <!-- iOS / Android Standalone Mode (Hides Browser UI) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F8FAFC">
+    
+    <title>TruthShield AI - Bảo Vệ Gia Đình</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --glass-border: rgba(255, 255, 255, 0.6);
+        --glass-bg: rgba(255, 255, 255, 0.85); 
+        --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+      }
+
+      /* --- NATIVE APP FEEL --- */
+      * {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+        -webkit-tap-highlight-color: transparent;
+        /* PREVENT TEXT SELECTION FOR CLEAN SCREENSHOTS */
+        user-select: none; 
+        -webkit-user-select: none;
+        /* iOS Font Smoothing - Essential for iPhone 16 Pro crispness */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Allow text selection on inputs only */
+      input, textarea {
+        user-select: text;
+        -webkit-user-select: text;
+      }
+      
+      *::-webkit-scrollbar {
+        display: none;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', sans-serif; /* Prefer System Font on iOS */
+        background-color: #F8FAFC; 
+        color: #0F172A;
+        overflow: hidden; 
+        height: 100vh;
+        width: 100vw;
+        /* Disable pull-to-refresh to prevent UI shifting */
+        overscroll-behavior: none;
+      }
+
+      /* --- Visual Effects --- */
+      .bg-noise {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+        opacity: 0.02;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        pointer-events: none;
+      }
+
+      .bg-aurora {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -2;
+        background: #F8FAFC;
+        overflow: hidden;
+      }
+
+      .blob {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: 0.6; 
+        animation: float 10s infinite ease-in-out alternate;
+        z-index: -1;
+      }
+      .blob-1 { top: -10%; left: -10%; width: 60vw; height: 60vw; background: radial-gradient(circle, #E0E7FF 0%, transparent 70%); animation-delay: 0s; }
+      .blob-2 { bottom: -10%; right: -10%; width: 50vw; height: 50vw; background: radial-gradient(circle, #DBEAFE 0%, transparent 70%); animation-delay: -5s; }
+      .blob-3 { top: 40%; left: 40%; width: 40vw; height: 40vw; background: radial-gradient(circle, #F3E8FF 0%, transparent 70%); animation-delay: -2s; opacity: 0.4; }
+
+      @keyframes float {
+        0% { transform: translate(0, 0) scale(1); }
+        100% { transform: translate(20px, 40px) scale(1.05); }
+      }
+      
+      .glass-panel {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--glass-shadow);
+      }
+      
+      .bg-gradient-premium {
+          background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%);
+      }
+      
+      .glow-text {
+        text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      }
+      
+      .animate-scan-line {
+        animation: scan-line 2.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        background: linear-gradient(to bottom, transparent, rgba(52, 211, 153, 0.8), transparent);
+        box-shadow: 0 0 15px rgba(52, 211, 153, 0.5);
+      }
+      
+      .hud-grid {
+        background-image: linear-gradient(rgba(52, 211, 153, 0.1) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(52, 211, 153, 0.1) 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+      
+      @keyframes gradient-x {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+      }
+      
+      .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient-x 3s ease infinite;
+      }
+      
+      @keyframes scan-line {
+        0% { top: 0%; opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { top: 100%; opacity: 0; }
+      }
+
+      .touch-target { min-height: 56px; }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.4.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6"
+  }
+}
+</script>
+</head>
+  <body>
+    <div class="bg-noise"></div>
+    <div class="bg-aurora">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <div id="root"></div>
+  </body>
+</html>
