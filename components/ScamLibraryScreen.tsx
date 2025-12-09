@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { BookOpen, ShieldAlert, Zap, Banknote, Heart, RefreshCw, AlertTriangle, Volume2, StopCircle, PlayCircle, XCircle, Search, Filter } from 'lucide-react';
+import { BookOpen, ShieldAlert, Zap, Banknote, Heart, RefreshCw, AlertTriangle, Volume2, StopCircle, PlayCircle, XCircle, Search, Filter, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { SCAM_LIBRARY_DATA, ScamCase } from '../data/mockData';
 
@@ -14,6 +14,7 @@ const ScamLibraryScreen: React.FC<ScamLibraryScreenProps> = ({ onOpenTutorial })
   const [searchTerm, setSearchTerm] = useState('');
   const [speakingId, setSpeakingId] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [selectedScam, setSelectedScam] = useState<ScamCase | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const categories = ['Tất cả', 'Deepfake', 'Giả danh', 'Đầu tư', 'Tình cảm', 'Mã độc'];
@@ -29,7 +30,7 @@ const ScamLibraryScreen: React.FC<ScamLibraryScreenProps> = ({ onOpenTutorial })
       });
   }, [activeCategory, searchTerm]);
 
-  // Voice logic remains similar but streamlined
+  // --- TTS Logic ---
   const speak = (scam: ScamCase) => {
     if (!('speechSynthesis' in window)) return setErrorMsg("Thiết bị không hỗ trợ đọc văn bản.");
     const synth = window.speechSynthesis;
@@ -39,12 +40,13 @@ const ScamLibraryScreen: React.FC<ScamLibraryScreenProps> = ({ onOpenTutorial })
       setSpeakingId(null);
       return;
     }
+    
     synth.cancel();
     
-    const text = `Cảnh báo lừa đảo dạng ${scam.type}. ${scam.title}. ${scam.description}`;
+    const text = `Cảnh báo: ${scam.title}. ${scam.description}. Ví dụ thực tế: ${scam.realCase}`;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'vi-VN';
-    utterance.rate = isSeniorMode ? 0.85 : 1.0;
+    utterance.rate = isSeniorMode ? 0.85 : 1.0; 
     
     utterance.onstart = () => setSpeakingId(scam.id);
     utterance.onend = () => setSpeakingId(null);
@@ -59,7 +61,7 @@ const ScamLibraryScreen: React.FC<ScamLibraryScreenProps> = ({ onOpenTutorial })
   }, []);
 
   const getIcon = (type: string) => {
-    const size = isSeniorMode ? 40 : 20;
+    const size = isSeniorMode ? 32 : 24;
     switch (type) {
       case 'Deepfake': return <ShieldAlert size={size} className="text-red-600" />;
       case 'Giả danh': return <Banknote size={size} className="text-blue-600" />;
@@ -69,6 +71,73 @@ const ScamLibraryScreen: React.FC<ScamLibraryScreenProps> = ({ onOpenTutorial })
     }
   };
 
+  // --- FONT SCALING CONSTANTS ---
+  const titleClass = isSeniorMode ? 'text-2xl font-black mb-3' : 'text-lg font-bold mb-1';
+  const descClass = isSeniorMode ? 'text-xl leading-relaxed text-slate-700' : 'text-sm text-slate-600';
+  const badgeClass = isSeniorMode ? 'text-sm px-3 py-1' : 'text-[10px] px-2 py-0.5';
+  
+  const detailTitleClass = isSeniorMode ? 'text-3xl font-black mb-4' : 'text-2xl font-bold mb-2';
+  const detailTextClass = isSeniorMode ? 'text-2xl leading-loose text-slate-800' : 'text-base leading-relaxed text-slate-700';
+
+  // --- DETAIL VIEW (When scam is selected) ---
+  if (selectedScam) {
+      return (
+          <div className={`p-4 md:p-6 pt-20 md:pt-10 pb-32 min-h-screen max-w-4xl mx-auto animate-in fade-in duration-300 ${isSeniorMode ? 'bg-slate-50' : 'bg-[#F8FAFC]'}`}>
+              <button 
+                  onClick={() => {
+                      window.speechSynthesis.cancel();
+                      setSpeakingId(null);
+                      setSelectedScam(null);
+                  }} 
+                  className="mb-4 flex items-center gap-2 text-slate-500 font-bold hover:text-blue-600 transition-colors"
+              >
+                  <ArrowLeft size={isSeniorMode ? 28 : 20} /> Quay lại
+              </button>
+              
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                  <div className="flex items-start gap-4 mb-6">
+                       <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 flex-shrink-0">{getIcon(selectedScam.type)}</div>
+                       <div>
+                           <span className="text-xs font-bold uppercase text-slate-400">{selectedScam.type}</span>
+                           <h1 className={detailTitleClass}>{selectedScam.title}</h1>
+                       </div>
+                  </div>
+
+                  {/* BIG TTS BUTTON - ONLY IN DETAIL VIEW */}
+                  <button 
+                      onClick={(e) => { e.stopPropagation(); speak(selectedScam); }}
+                      className={`w-full mb-6 flex items-center justify-center gap-3 rounded-xl font-bold transition-all shadow-sm active:scale-95 ${
+                          speakingId === selectedScam.id 
+                          ? 'bg-red-100 text-red-600 border border-red-200' 
+                          : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
+                      } ${isSeniorMode ? 'py-5 text-2xl' : 'py-3 text-base'}`}
+                  >
+                      {speakingId === selectedScam.id ? <StopCircle size={isSeniorMode ? 32 : 24} /> : <Volume2 size={isSeniorMode ? 32 : 24} />}
+                      {speakingId === selectedScam.id ? 'Dừng đọc' : 'Đọc nội dung này'}
+                  </button>
+
+                  <div className={detailTextClass}>
+                      {selectedScam.description}
+                  </div>
+                  
+                  {/* Real Case Box */}
+                  <div className="mt-8 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                       <h4 className="font-bold text-slate-500 uppercase text-xs mb-3 flex items-center gap-2">
+                           <AlertTriangle size={16} /> Ví dụ thực tế
+                       </h4>
+                       <p className={`font-medium mb-3 text-slate-900 ${isSeniorMode ? 'text-xl' : 'text-sm'}`}>
+                           "{selectedScam.realCase}"
+                       </p>
+                       <p className={`text-red-600 font-bold ${isSeniorMode ? 'text-xl' : 'text-sm'}`}>
+                           Thiệt hại: {selectedScam.damage}
+                       </p>
+                  </div>
+              </div>
+          </div>
+      );
+  }
+
+  // --- LIST VIEW ---
   return (
     <div className={`p-4 md:p-6 pt-20 md:pt-10 pb-32 min-h-screen max-w-4xl mx-auto animate-in fade-in duration-300 ${isSeniorMode ? 'bg-slate-50' : 'bg-[#F8FAFC]'}`}>
       {errorMsg && (
@@ -78,48 +147,42 @@ const ScamLibraryScreen: React.FC<ScamLibraryScreenProps> = ({ onOpenTutorial })
       )}
 
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4 border-b border-slate-200 pb-4">
-        <div>
-          <h2 className={`${isSeniorMode ? 'text-3xl md:text-4xl' : 'text-3xl'} font-black text-slate-900 mb-2 flex items-center gap-2`}>
-            <BookOpen size={isSeniorMode ? 48 : 32} className="text-blue-600" /> 
-            {isSeniorMode ? 'THƯ VIỆN CẢNH BÁO' : 'Thư Viện Cảnh Báo'}
+      <div className="mb-6 border-b border-slate-200 pb-4">
+          <h2 className={`${isSeniorMode ? 'text-3xl' : 'text-2xl'} font-black text-slate-900 mb-1 flex items-center gap-2`}>
+            <BookOpen size={isSeniorMode ? 32 : 24} className="text-blue-600" /> 
+            {isSeniorMode ? 'THƯ VIỆN CẢNH BÁO' : 'Thư Viện'}
           </h2>
-          <p className={`${isSeniorMode ? 'text-lg md:text-xl font-medium' : 'text-base'} text-slate-500`}>
-            {isSeniorMode ? 'Tổng hợp các thủ đoạn lừa đảo. Bác bấm vào để nghe.' : 'Kiến thức phòng chống lừa đảo công nghệ cao.'}
+          <p className={`${isSeniorMode ? 'text-lg' : 'text-sm'} text-slate-500`}>
+            {isSeniorMode ? 'Danh sách các thủ đoạn lừa đảo phổ biến.' : 'Kiến thức phòng chống lừa đảo công nghệ cao.'}
           </p>
-        </div>
       </div>
 
-      {/* TOOLS: SEARCH & CATEGORIES */}
+      {/* TOOLS */}
       <div className="mb-6 space-y-4">
-           {/* Search Bar - REFACTORED STYLE */}
-           <div className={`flex items-center bg-white border border-slate-200 rounded-2xl shadow-sm transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400 ${isSeniorMode ? 'p-4' : 'p-3'}`}>
-                <Search size={isSeniorMode ? 32 : 24} className="text-slate-400 flex-shrink-0 ml-1" />
+           {/* Search */}
+           <div className={`flex items-center bg-white border border-slate-200 rounded-xl shadow-sm px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500/20`}>
+                <Search size={20} className="text-slate-400 mr-2" />
                 <input 
                     type="text" 
-                    placeholder={isSeniorMode ? "Tìm kiếm (Ví dụ: Công an, Deepfake...)" : "Tìm kiếm thủ đoạn (VD: Deepfake, Công an...)"}
-                    className={`w-full bg-transparent outline-none px-3 font-bold text-slate-800 placeholder:text-slate-400 placeholder:font-medium ${isSeniorMode ? 'text-xl' : 'text-base'}`}
+                    placeholder="Tìm kiếm thủ đoạn..."
+                    className={`w-full bg-transparent outline-none font-medium text-slate-800 placeholder:text-slate-400 ${isSeniorMode ? 'text-lg py-1' : 'text-sm'}`}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                {searchTerm && (
-                    <button onClick={() => setSearchTerm('')} className="p-1 text-slate-400 hover:text-slate-600">
-                        <XCircle size={20} />
-                    </button>
-                )}
+                {searchTerm && <button onClick={() => setSearchTerm('')}><XCircle size={16} className="text-slate-400" /></button>}
            </div>
 
-           {/* Category Tabs */}
-           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+           {/* Categories */}
+           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                 {categories.map(cat => (
                     <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
-                        className={`px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-all border ${
+                        className={`rounded-lg font-bold whitespace-nowrap transition-all border ${
                             activeCategory === cat 
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
                             : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-                        } ${isSeniorMode ? 'text-lg px-6 py-3' : 'text-sm'}`}
+                        } ${isSeniorMode ? 'px-4 py-2 text-base' : 'px-3 py-1.5 text-xs'}`}
                     >
                         {cat}
                     </button>
@@ -128,80 +191,41 @@ const ScamLibraryScreen: React.FC<ScamLibraryScreenProps> = ({ onOpenTutorial })
       </div>
 
       {/* SCAM LIST */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {filteredScams.length > 0 ? filteredScams.map((scam) => (
           <div 
             key={scam.id} 
-            onClick={() => isSeniorMode && speak(scam)} 
-            className={`bg-white rounded-3xl shadow-sm hover:shadow-lg transition-all relative overflow-hidden group cursor-pointer ${
-                isSeniorMode ? 'border-4 border-slate-200 p-6 active:bg-blue-50' : 'border border-slate-200 p-5'
-            }`}
+            onClick={() => setSelectedScam(scam)}
+            className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden group cursor-pointer hover:border-blue-300 transition-colors ${isSeniorMode ? 'p-5' : 'p-4'}`}
           >
-             <div className={`absolute top-0 right-0 rounded-bl-2xl text-white font-bold uppercase tracking-wide shadow-sm flex items-center gap-1 ${
-               scam.risk === 'Cao' ? 'bg-red-600' : scam.risk === 'Trung bình' ? 'bg-amber-500' : 'bg-blue-600'
-             } ${isSeniorMode ? 'text-lg px-6 py-2' : 'text-xs px-3 py-1'}`}>
-                <AlertTriangle size={isSeniorMode ? 20 : 12} fill="currentColor" />
-                {scam.risk}
+             <div className="flex justify-between items-start gap-4 mb-3">
+                 <div className="flex items-start gap-3">
+                     <div className={`p-2 rounded-xl bg-slate-50 border border-slate-100 flex-shrink-0`}>
+                         {getIcon(scam.type)}
+                     </div>
+                     <div>
+                         <span className={`text-slate-400 font-bold uppercase tracking-wider block mb-0.5 ${isSeniorMode ? 'text-xs' : 'text-[10px]'}`}>
+                             {scam.type}
+                         </span>
+                         <h3 className={`text-slate-900 leading-tight ${titleClass}`}>{scam.title}</h3>
+                     </div>
+                 </div>
              </div>
 
-            <div className="flex flex-col md:flex-row md:items-start gap-4 mb-3 pt-8 md:pt-0">
-              <div className={`flex-shrink-0 bg-slate-100 rounded-2xl flex items-center justify-center border-2 border-slate-200 ${isSeniorMode ? 'w-20 h-20' : 'w-12 h-12'}`}>
-                {getIcon(scam.type)}
-              </div>
-
-              <div className="flex-1 pr-4">
-                <span className={`font-bold text-slate-500 uppercase tracking-wide block mb-1 ${isSeniorMode ? 'text-base' : 'text-xs'}`}>
-                    {scam.type}
-                </span>
-                <h3 className={`font-black text-slate-900 leading-tight ${isSeniorMode ? 'text-2xl md:text-3xl' : 'text-xl'}`}>
-                    {scam.title}
-                </h3>
-              </div>
-              
-              {isSeniorMode && (
-                  <button 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        speak(scam);
-                    }}
-                    className={`flex-shrink-0 w-full md:w-auto px-6 py-4 rounded-2xl border-2 flex items-center justify-center gap-3 transition-all shadow-md active:scale-95 mt-4 md:mt-0 ${
-                        speakingId === scam.id 
-                        ? 'bg-red-100 border-red-500 text-red-700 animate-pulse' 
-                        : 'bg-white border-blue-600 text-blue-700 hover:bg-blue-50'
-                    }`}
-                  >
-                      {speakingId === scam.id ? <StopCircle size={32} /> : <Volume2 size={32} />}
-                      <span className="font-bold text-xl uppercase">
-                          {speakingId === scam.id ? 'Dừng Lại' : 'Đọc Nghe'}
-                      </span>
-                  </button>
-              )}
-            </div>
+             {/* Risk Badge */}
+             <div className="mb-3">
+                 <span className={`rounded font-bold inline-flex items-center gap-1 ${
+                   scam.risk === 'Cao' ? 'bg-red-100 text-red-700' : scam.risk === 'Trung bình' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                 } ${badgeClass}`}>
+                    <AlertTriangle size={isSeniorMode ? 14 : 10} fill="currentColor" /> {scam.risk}
+                 </span>
+             </div>
             
-            <p className={`text-slate-700 leading-relaxed mb-4 mt-2 ${isSeniorMode ? 'text-xl font-medium' : 'text-base'}`}>
-              {scam.description}
-            </p>
-
-            {/* Real Case Info */}
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 mb-4">
-                 <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1">
-                     <BookOpen size={12} /> Ví dụ thực tế:
-                 </div>
-                 <p className={`font-bold text-slate-800 ${isSeniorMode ? 'text-lg' : 'text-sm'}`}>
-                     "{scam.realCase}" <span className="text-red-600 font-black">- {scam.damage}</span>
-                 </p>
-            </div>
-            
-            <div className="flex flex-wrap gap-2 pt-4 border-t-2 border-slate-100">
-              <span className={`font-bold text-red-600 mr-2 uppercase tracking-wide py-1 flex items-center gap-1 ${isSeniorMode ? 'text-base' : 'text-xs'}`}>
-                  <Zap size={16} /> Từ khóa:
-              </span>
-              {scam.keywords.map((kw, idx) => (
-                <span key={idx} className={`bg-red-50 text-red-700 font-bold rounded-lg border border-red-100 ${isSeniorMode ? 'text-base px-3 py-1.5' : 'text-xs px-2 py-1'}`}>
-                  {kw}
-                </span>
-              ))}
-            </div>
+             <p className={`${descClass} mb-4 line-clamp-3`}>{scam.description}</p>
+             
+             <div className="text-blue-600 font-bold text-sm flex items-center gap-1">
+                 Xem chi tiết <Search size={14} />
+             </div>
           </div>
         )) : (
             <div className="text-center py-20">

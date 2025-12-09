@@ -161,14 +161,14 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
         }
     }, [status, communityInfo, warningPlayed, contactName]);
 
-    // 2. Auto-Hangup Logic (Fixed Race Condition)
+    // 2. Auto-Hangup Logic
     useEffect(() => {
         let timeoutId: any;
         
         if (status === 'ringing' && communityInfo?.tags.includes('scam') && AUTO_HANGUP && !isProcessing && !contactName) {
              timeoutId = setTimeout(() => {
                  handleAutoHangup();
-             }, 3000); // 3 seconds delay before auto-hangup to allow user to see warning
+             }, 3000); // 3 seconds delay before auto-hangup
         }
         
         return () => {
@@ -183,86 +183,97 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
     const isSafe = communityInfo?.tags.includes('safe') || !!contactName;
     const isDelivery = communityInfo?.tags.includes('delivery');
 
-    const getBgColor = () => {
+    // HIGH OPACITY GRADIENTS
+    const getBgClass = () => {
         if (status === 'auto_ended') return 'bg-slate-900';
-        if (status === 'connected') return 'bg-slate-900/95';
-        if (isScam) return 'bg-red-600';
-        if (isSpam) return 'bg-amber-600';
-        if (isDelivery) return 'bg-blue-600';
-        if (isSafe) return 'bg-green-600';
-        return 'bg-slate-800'; // Unknown
+        if (status === 'connected') return 'bg-gradient-to-b from-slate-900 to-slate-800'; // Solid dark
+        
+        if (isScam) return 'bg-gradient-to-br from-red-900/95 to-rose-800/95 backdrop-blur-xl';
+        if (isSpam) return 'bg-gradient-to-br from-amber-900/95 to-orange-800/95 backdrop-blur-xl';
+        if (isSafe || isDelivery) return 'bg-gradient-to-br from-emerald-900/95 to-teal-800/95 backdrop-blur-xl';
+        
+        // Default Unknown - Dark Blue/Slate
+        return 'bg-gradient-to-br from-slate-900/95 to-blue-900/95 backdrop-blur-xl'; 
     };
 
     return (
-        <div className={`fixed inset-0 z-[100] ${getBgColor()} transition-colors duration-500 flex flex-col items-center justify-between py-12 px-6 text-white animate-in slide-in-from-bottom duration-300`}>
+        <div className={`fixed inset-0 z-[100] ${getBgClass()} transition-all duration-700 flex flex-col items-center justify-between py-12 px-6 text-white animate-in zoom-in-95 duration-300`}>
             
             {/* --- HEADER --- */}
-            <div className="text-center w-full relative">
+            <div className="text-center w-full relative pt-8">
                  {/* Auto-Ended Badge */}
                  {status === 'auto_ended' && (
-                     <div className="bg-red-500 text-white font-black text-xl py-2 px-6 rounded-full inline-flex items-center gap-2 mb-6 animate-pulse">
-                         <Ban size={24} /> AI ĐÃ CHẶN CUỘC GỌI
+                     <div className="bg-red-600 text-white font-black text-xl py-3 px-8 rounded-2xl inline-flex items-center gap-2 mb-6 animate-pulse shadow-xl border border-red-400">
+                         <Ban size={28} /> AI ĐÃ CHẶN CUỘC GỌI
                      </div>
                  )}
                  
                  {/* Scam Warning Badge */}
                  {status === 'ringing' && isScam && (
-                     <div className="bg-white text-red-600 font-black text-xl py-2 px-6 rounded-full inline-flex items-center gap-2 mb-6 animate-bounce shadow-lg">
-                         <ShieldAlert size={24} /> CẢNH BÁO LỪA ĐẢO
+                     <div className="bg-white text-red-700 font-black text-2xl py-3 px-8 rounded-2xl inline-flex items-center gap-3 mb-6 animate-bounce shadow-2xl border-4 border-red-200">
+                         <ShieldAlert size={32} /> CẢNH BÁO LỪA ĐẢO
+                     </div>
+                 )}
+
+                 {/* Safe Badge */}
+                 {status === 'ringing' && isSafe && (
+                     <div className="bg-white text-emerald-700 font-black text-lg py-2 px-6 rounded-2xl inline-flex items-center gap-2 mb-6 shadow-xl">
+                         <ShieldCheck size={24} /> AN TOÀN - ĐÃ XÁC MINH
                      </div>
                  )}
             </div>
 
             {/* --- CALLER INFO --- */}
             <div className="flex flex-col items-center text-center">
-                <div className={`w-32 h-32 rounded-full flex items-center justify-center mb-6 shadow-2xl relative ${
-                    isScam ? 'bg-white text-red-600' : 
-                    isSafe ? 'bg-white/20 text-white backdrop-blur-md' : 'bg-white/10 text-white'
+                <div className={`w-40 h-40 rounded-full flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(0,0,0,0.3)] relative border-4 border-white/20 ${
+                    isScam ? 'bg-red-600' : isSafe ? 'bg-emerald-600' : 'bg-slate-700'
                 }`}>
-                    {contactName ? <User size={64} /> : isScam ? <ShieldAlert size={64} /> : <Globe size={64} />}
+                    {contactName ? <User size={80} className="text-white" /> : isScam ? <ShieldAlert size={80} className="text-white" /> : <Globe size={80} className="text-white" />}
                     
                     {/* Ripple Effect for Ringing */}
                     {status === 'ringing' && (
                         <>
-                            <div className="absolute inset-0 rounded-full border-2 border-white/50 animate-ping"></div>
-                            <div className="absolute inset-0 rounded-full border-2 border-white/30 animate-ping delay-150"></div>
+                            <div className="absolute inset-0 rounded-full border-4 border-white/40 animate-ping"></div>
+                            <div className="absolute inset-0 rounded-full border-4 border-white/20 animate-ping delay-150"></div>
                         </>
                     )}
                 </div>
 
-                <h2 className={`font-black tracking-tight mb-2 ${isSeniorMode ? 'text-5xl' : 'text-4xl'}`}>
+                <h2 className={`font-black tracking-tight mb-3 drop-shadow-lg ${isSeniorMode ? 'text-5xl leading-tight' : 'text-4xl'}`}>
                     {contactName || call.phoneNumber}
                 </h2>
                 
                 {status === 'connected' ? (
-                     <div className="text-2xl font-mono font-bold opacity-80 mt-2">{formatDuration(timer)}</div>
+                     <div className="text-3xl font-mono font-bold text-emerald-300 mt-2 tracking-widest">{formatDuration(timer)}</div>
                 ) : (
-                    <div className="space-y-1">
-                        <p className={`font-bold opacity-90 ${isSeniorMode ? 'text-2xl' : 'text-lg'}`}>
+                    <div className="space-y-2">
+                        <p className={`font-bold text-white/90 ${isSeniorMode ? 'text-3xl' : 'text-xl'}`}>
                              {communityInfo?.carrier || "Đang kết nối..."}
                         </p>
                         {communityInfo?.communityLabel && (
-                             <div className="inline-block bg-black/20 backdrop-blur-md rounded-lg px-3 py-1 text-sm font-medium mt-2">
+                             <div className={`inline-block rounded-xl px-4 py-2 text-lg font-bold mt-2 shadow-lg ${
+                                 isScam ? 'bg-red-800 text-white border border-red-500' : 'bg-white/20 text-white backdrop-blur-md border border-white/30'
+                             }`}>
                                  "{communityInfo.communityLabel}"
                              </div>
                         )}
                         {!contactName && !isLoadingData && !communityInfo && (
-                             <p className="text-sm opacity-60">Số lạ - Chưa có báo cáo</p>
+                             <p className="text-lg text-white/60 font-medium">Số lạ - Chưa có báo cáo</p>
                         )}
                     </div>
                 )}
             </div>
 
             {/* --- ACTIONS --- */}
-            <div className="w-full max-w-sm">
+            <div className="w-full max-w-sm pb-8">
                  
                  {/* Auto Ended State */}
                  {status === 'auto_ended' && (
                      <div className="text-center">
-                         <p className="text-slate-300 mb-6">Hệ thống đã tự động ngắt kết nối để bảo vệ bạn.</p>
+                         <p className="text-slate-300 mb-8 text-lg font-medium">Hệ thống đã tự động ngắt kết nối để bảo vệ bạn.</p>
                          <button 
                              onClick={() => setIncomingCall(null)}
-                             className="bg-white text-slate-900 w-full py-4 rounded-2xl font-bold text-lg"
+                             className="bg-white hover:bg-slate-100 text-slate-900 w-full py-5 rounded-2xl font-black text-xl shadow-xl transition-transform active:scale-95"
                          >
                              Đóng
                          </button>
@@ -271,48 +282,48 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
 
                  {/* Ringing State */}
                  {status === 'ringing' && (
-                     <div className={`flex items-center w-full ${isScam ? 'justify-center gap-4' : 'justify-between gap-6'}`}>
+                     <div className={`flex items-center w-full ${isScam ? 'justify-center gap-6' : 'justify-between gap-8'}`}>
                          
                          {/* Decline Button (Left) */}
-                         <div className="flex flex-col items-center gap-2">
+                         <div className="flex flex-col items-center gap-3">
                             <button 
                                 onClick={handleDecline}
-                                className={`${isScam ? 'w-14 h-14 bg-red-500/80 border border-red-400' : 'w-20 h-20 bg-red-500'} rounded-full flex items-center justify-center text-white shadow-lg hover:bg-red-600 transition-transform active:scale-95`}
+                                className={`${isScam ? 'w-16 h-16 bg-white/20 border-2 border-white/30 hover:bg-white/30' : 'w-24 h-24 bg-red-600 hover:bg-red-700 border-4 border-red-700'} rounded-full flex items-center justify-center text-white shadow-2xl transition-transform active:scale-95`}
                             >
-                                <PhoneOff size={isScam ? 24 : 32} fill="currentColor" />
+                                <PhoneOff size={isScam ? 28 : 40} fill="currentColor" />
                             </button>
-                            <span className="text-sm font-bold opacity-90">Từ chối</span>
+                            <span className="text-base font-bold text-white/90 uppercase tracking-wide">Từ chối</span>
                          </div>
 
                          {/* Block Button (SCAM ONLY - Center) */}
                          {isScam && (
-                             <div className="flex flex-col items-center gap-2 -mt-4">
+                             <div className="flex flex-col items-center gap-3 -mt-6">
                                 <button 
                                     onClick={() => {
                                         blockNumber(call.phoneNumber);
                                         handleDecline();
                                     }}
-                                    className="w-24 h-24 bg-slate-900 border-4 border-red-500 rounded-full flex items-center justify-center text-red-500 shadow-2xl hover:bg-slate-800 transition-transform active:scale-95 z-10"
+                                    className="w-28 h-28 bg-white border-4 border-red-500 rounded-full flex items-center justify-center text-red-600 shadow-[0_0_50px_rgba(239,68,68,0.6)] hover:scale-105 transition-transform active:scale-95 z-10"
                                 >
-                                    <Ban size={40} />
+                                    <Ban size={48} />
                                 </button>
-                                <span className="text-base font-black text-red-300 uppercase tracking-wide">CHẶN NGAY</span>
+                                <span className="text-lg font-black text-white uppercase tracking-widest drop-shadow-md bg-red-600/80 px-3 py-1 rounded-full">CHẶN NGAY</span>
                              </div>
                          )}
 
-                         {/* Answer Button (Right) - Now visible even for Scam */}
-                         <div className="flex flex-col items-center gap-2">
+                         {/* Answer Button (Right) */}
+                         <div className="flex flex-col items-center gap-3">
                             <button 
                                 onClick={handleAccept}
                                 className={`${
                                     isScam 
-                                    ? 'w-14 h-14 bg-transparent border-2 border-green-400 text-green-400 hover:bg-green-900/30' 
-                                    : 'w-20 h-20 bg-green-500 text-white animate-pulse'
-                                } rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95`}
+                                    ? 'w-16 h-16 bg-transparent border-2 border-white/30 text-white/50 hover:bg-white/10' 
+                                    : 'w-24 h-24 bg-green-500 hover:bg-green-600 border-4 border-green-600 animate-pulse'
+                                } rounded-full flex items-center justify-center shadow-2xl transition-transform active:scale-95 text-white`}
                             >
-                                <Phone size={isScam ? 24 : 32} fill="currentColor" />
+                                <Phone size={isScam ? 28 : 40} fill="currentColor" />
                             </button>
-                            <span className={`text-sm font-bold ${isScam ? 'text-green-300' : 'text-white'}`}>
+                            <span className={`text-base font-bold uppercase tracking-wide ${isScam ? 'text-white/50' : 'text-white/90'}`}>
                                 {isScam ? 'Vẫn nghe' : 'Trả lời'}
                             </span>
                          </div>
@@ -324,16 +335,16 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
                      <div className="flex justify-center">
                           <button 
                                 onClick={handleHangup}
-                                className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center text-white shadow-xl hover:bg-red-700 transition-transform active:scale-95"
+                                className="w-28 h-28 bg-red-600 hover:bg-red-700 border-8 border-red-800/50 rounded-full flex items-center justify-center text-white shadow-2xl transition-transform active:scale-95"
                           >
-                                <PhoneOff size={40} fill="currentColor" />
+                                <PhoneOff size={48} fill="currentColor" />
                           </button>
                      </div>
                  )}
                  
                  {/* Ended State */}
                  {status === 'ended' && (
-                     <div className="text-center font-bold text-xl opacity-80">
+                     <div className="text-center font-bold text-2xl text-white/80 animate-pulse">
                          Cuộc gọi đã kết thúc
                      </div>
                  )}

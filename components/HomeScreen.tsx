@@ -57,27 +57,26 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2 mt-2 md:mt-0">
            <div>
                <div className="flex items-center gap-2 mb-1">
-                    <h1 className={`${isSeniorMode ? 'text-2xl' : 'text-3xl md:text-3xl'} font-black text-slate-900 tracking-tight`}>
+                    <h1 className={`${isSeniorMode ? 'text-3xl' : 'text-3xl md:text-3xl'} font-black text-slate-900 tracking-tight`}>
                         Chào <span className="text-blue-600">{user?.name}</span>
                     </h1>
                     <span className="text-2xl md:text-2xl animate-wave origin-bottom">👋</span>
                </div>
-               <div className={`${isSeniorMode ? 'text-base' : 'text-sm md:text-base'} text-slate-500 font-bold flex items-center gap-2`}>
+               <div className={`${isSeniorMode ? 'text-lg' : 'text-sm md:text-base'} text-slate-500 font-bold flex items-center gap-2`}>
                    <div className="bg-green-100 p-1 rounded-full">
-                       <ShieldCheck size={14} className="text-green-600 fill-current" />
+                       <ShieldCheck size={isSeniorMode ? 18 : 14} className="text-green-600 fill-current" />
                    </div>
                    Hệ thống an toàn.
                </div>
            </div>
            
-           {!isSeniorMode && (
-               <button onClick={handleSystemCheck} className="self-start md:self-auto flex items-center gap-2 bg-white hover:bg-slate-50 transition-colors px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-slate-200 shadow-sm active:scale-95">
-                   <Zap size={14} className={`text-yellow-500 ${systemStatus === 'optimizing' ? 'animate-pulse' : ''}`} fill="currentColor" />
-                   <span className="text-[10px] md:text-xs font-black text-slate-700 uppercase tracking-wide">
-                       {systemStatus === 'optimizing' ? 'Đang tối ưu...' : 'Kiểm tra hệ thống'}
-                   </span>
-               </button>
-           )}
+           {/* System Check Button - Always visible, just bigger in Senior Mode */}
+           <button onClick={handleSystemCheck} className={`self-start md:self-auto flex items-center gap-2 bg-white hover:bg-slate-50 transition-colors rounded-full border border-slate-200 shadow-sm active:scale-95 ${isSeniorMode ? 'px-6 py-3' : 'px-3 py-1.5 md:px-4 md:py-2'}`}>
+               <Zap size={isSeniorMode ? 18 : 14} className={`text-yellow-500 ${systemStatus === 'optimizing' ? 'animate-pulse' : ''}`} fill="currentColor" />
+               <span className={`${isSeniorMode ? 'text-base' : 'text-[10px] md:text-xs'} font-black text-slate-700 uppercase tracking-wide`}>
+                   {systemStatus === 'optimizing' ? 'Đang tối ưu...' : 'Kiểm tra hệ thống'}
+               </span>
+           </button>
        </div>
 
        {/* HERO DASHBOARD */}
@@ -104,7 +103,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                        {/* Center Shield */}
                        <div className="absolute inset-0 flex items-center justify-center">
                            <div className={`bg-slate-900 p-6 md:p-6 rounded-full border border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.5)] relative z-10 transition-all ${systemStatus === 'optimizing' ? 'scale-90 shadow-[0_0_50px_rgba(59,130,246,0.8)]' : 'hover:scale-105'}`}>
-                               <Shield size={isSeniorMode ? 44 : 40} className="text-blue-400 fill-blue-500/20 md:w-12 md:h-12" />
+                               <Shield size={isSeniorMode ? 50 : 40} className="text-blue-400 fill-blue-500/20 md:w-12 md:h-12" />
                            </div>
                        </div>
                    </div>
@@ -115,10 +114,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                            <div className="bg-blue-500/20 p-1.5 rounded-lg backdrop-blur-sm border border-blue-500/30">
                                <Activity size={14} className="text-blue-300" />
                            </div>
-                           <span className="text-[10px] md:text-xs font-bold text-blue-200 uppercase tracking-widest glow-text">AI Sentinel Core</span>
+                           <span className={`${isSeniorMode ? 'text-base' : 'text-[10px] md:text-xs'} font-bold text-blue-200 uppercase tracking-widest glow-text`}>AI Sentinel Core</span>
                        </div>
                        
-                       <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-3 tracking-tight">
+                       <h2 className={`${isSeniorMode ? 'text-5xl' : 'text-4xl md:text-5xl lg:text-6xl'} font-black text-white leading-tight mb-3 tracking-tight`}>
                            {systemStatus === 'optimizing' ? (
                                <span className="text-blue-300 animate-pulse">ĐANG QUÉT...</span>
                            ) : (
@@ -131,7 +130,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                            )}
                        </h2>
                        
-                       <p className="text-slate-400 font-medium text-xs md:text-sm lg:text-base leading-relaxed max-w-sm mx-auto md:mx-0 hidden sm:block">
+                       <p className={`text-slate-400 font-medium leading-relaxed max-w-sm mx-auto md:mx-0 ${isSeniorMode ? 'text-lg block' : 'text-xs md:text-sm lg:text-base hidden sm:block'}`}>
                            AI đang giám sát {scannedItems.toLocaleString()} tín hiệu theo thời gian thực.
                        </p>
                    </div>
@@ -140,20 +139,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                {/* Bottom Stats Bar */}
                <div className="relative z-10 bg-black/40 backdrop-blur-md border-t border-white/5 p-5 grid grid-cols-3 gap-px">
                    <div className="flex flex-col items-center justify-center border-r border-white/5">
-                       <div className="flex items-center gap-1 md:gap-2 text-white font-bold text-sm md:text-lg">
-                           <Clock size={16} className="text-emerald-400" /> 24/7
+                       <div className={`flex items-center gap-1 md:gap-2 text-white font-bold ${isSeniorMode ? 'text-xl' : 'text-sm md:text-lg'}`}>
+                           <Clock size={isSeniorMode ? 20 : 16} className="text-emerald-400" /> 24/7
                        </div>
                    </div>
                    
                    <div className="flex flex-col items-center justify-center border-r border-white/5">
-                       <div className="flex items-center gap-1 md:gap-2 text-white font-bold text-sm md:text-lg">
-                           <Globe size={16} className="text-blue-400" /> Global
+                       <div className={`flex items-center gap-1 md:gap-2 text-white font-bold ${isSeniorMode ? 'text-xl' : 'text-sm md:text-lg'}`}>
+                           <Globe size={isSeniorMode ? 20 : 16} className="text-blue-400" /> Global
                        </div>
                    </div>
                    
                    <div className="flex flex-col items-center justify-center">
-                       <div className="flex items-center gap-1 md:gap-2 text-white font-bold text-sm md:text-lg">
-                           <Battery size={16} className="text-yellow-400" /> Tối ưu
+                       <div className={`flex items-center gap-1 md:gap-2 text-white font-bold ${isSeniorMode ? 'text-xl' : 'text-sm md:text-lg'}`}>
+                           <Battery size={isSeniorMode ? 20 : 16} className="text-yellow-400" /> Tối ưu
                        </div>
                    </div>
                </div>
@@ -172,8 +171,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                        <ArrowUpRight size={28} className="text-slate-300 group-hover:text-purple-600 transition-colors" />
                    </div>
                    <div className="relative z-10">
-                       <h3 className="text-3xl font-black text-slate-900 tracking-tight">AI Scan</h3>
-                       <p className="text-sm font-bold text-slate-500 mt-2">Quét Deepfake khuôn mặt & giọng nói.</p>
+                       <h3 className={`${isSeniorMode ? 'text-4xl' : 'text-3xl'} font-black text-slate-900 tracking-tight`}>AI Scan</h3>
+                       <p className={`${isSeniorMode ? 'text-lg' : 'text-sm'} font-bold text-slate-500 mt-2`}>Quét Deepfake khuôn mặt & giọng nói.</p>
                        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-purple-600 uppercase tracking-wide">
                            <span className="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span> Sẵn sàng
                        </div>
@@ -191,8 +190,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                <Search size={28} />
            </div>
            <div className="flex-1 px-5">
-               <h3 className="font-bold text-slate-900 text-xl">Tra cứu số lạ</h3>
-               <p className="text-slate-400 text-base font-medium">Nhập số điện thoại để kiểm tra...</p>
+               <h3 className={`font-bold text-slate-900 ${isSeniorMode ? 'text-2xl' : 'text-xl'}`}>Tra cứu số lạ</h3>
+               <p className={`text-slate-400 font-medium ${isSeniorMode ? 'text-lg' : 'text-base'}`}>Nhập số điện thoại để kiểm tra...</p>
            </div>
            <div className="pr-4">
                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
@@ -203,8 +202,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
        {/* DEMO ACTIONS ROW */}
        <div>
-           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-3 flex items-center gap-2">
-               <Zap size={14} /> Giả lập tình huống
+           <h2 className={`font-bold text-slate-400 uppercase tracking-wider mb-4 px-3 flex items-center gap-2 ${isSeniorMode ? 'text-sm' : 'text-xs'}`}>
+               <Zap size={isSeniorMode ? 18 : 14} /> Giả lập tình huống
            </h2>
            <div className="grid grid-cols-2 gap-4">
                 <button 
@@ -217,8 +216,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                     <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center text-green-600 mb-4 group-hover:scale-110 transition-transform relative z-10">
                         <Truck size={24} />
                     </div>
-                    <span className="block font-bold text-slate-900 relative z-10 text-lg">Shipper Gọi</span>
-                    <span className="text-xs text-slate-500 font-medium relative z-10 mt-1 block">Kịch bản an toàn</span>
+                    <span className={`block font-bold text-slate-900 relative z-10 ${isSeniorMode ? 'text-xl' : 'text-lg'}`}>Shipper Gọi</span>
+                    <span className={`text-slate-500 font-medium relative z-10 mt-1 block ${isSeniorMode ? 'text-base' : 'text-xs'}`}>Kịch bản an toàn</span>
                 </button>
 
                 <button 
@@ -231,8 +230,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                     <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 mb-4 group-hover:scale-110 transition-transform relative z-10">
                         <AlertTriangle size={24} />
                     </div>
-                    <span className="block font-bold text-slate-900 relative z-10 text-lg">Lừa Đảo Gọi</span>
-                    <span className="text-xs text-slate-500 font-medium relative z-10 mt-1 block">Kịch bản nguy hiểm</span>
+                    <span className={`block font-bold text-slate-900 relative z-10 ${isSeniorMode ? 'text-xl' : 'text-lg'}`}>Lừa Đảo Gọi</span>
+                    <span className={`text-slate-500 font-medium relative z-10 mt-1 block ${isSeniorMode ? 'text-base' : 'text-xs'}`}>Kịch bản nguy hiểm</span>
                 </button>
            </div>
        </div>
@@ -251,9 +250,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                <div className="flex-1 min-w-0">
                    <div className="flex items-center gap-2 mb-1.5">
                        <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse shadow-lg shadow-red-500/40">HOT</span>
-                       <h3 className="font-bold text-lg truncate">Thủ đoạn mới: SIM 5G</h3>
+                       <h3 className={`font-bold truncate ${isSeniorMode ? 'text-xl' : 'text-lg'}`}>Thủ đoạn mới: SIM 5G</h3>
                    </div>
-                   <p className="text-slate-400 text-sm line-clamp-2">Cảnh báo chiêu trò nâng cấp SIM để chiếm đoạt OTP ngân hàng.</p>
+                   <p className={`text-slate-400 line-clamp-2 ${isSeniorMode ? 'text-base' : 'text-sm'}`}>Cảnh báo chiêu trò nâng cấp SIM để chiếm đoạt OTP ngân hàng.</p>
                </div>
                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white group-hover:text-slate-900 transition-colors">
                    <ChevronRight size={24} />

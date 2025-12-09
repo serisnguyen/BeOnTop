@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Send, Bot, ShieldAlert, Loader2, MapPin, 
-  Navigation, Shield, AlertTriangle, 
-  Phone, Search, Zap, Volume2, StopCircle, Mic, X, 
+  Send, Bot, ShieldAlert, Loader2, 
+  Shield, AlertTriangle, 
+  Phone, Search, Zap, Volume2, StopCircle, Mic, 
   Paperclip, Image as ImageIcon, FileText, FileAudio, Video, MicOff
 } from 'lucide-react';
 import { GoogleGenAI, Chat } from "@google/genai";
@@ -43,7 +43,7 @@ const OFFLINE_RESPONSES: Record<string, string> = {
 };
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
-  const { user, isSeniorMode } = useAuth();
+  const { user, isSeniorMode, speakUI, triggerHaptic } = useAuth();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,16 +52,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
   
   // Input State
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [isListening, setIsListening] = useState(false); // Dictation State
-  
-  // New State for Safety Interstitial
+  const [isListening, setIsListening] = useState(false); 
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatSessionRef = useRef<Chat | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const recognitionRef = useRef<any>(null);
 
   const scrollToBottom = () => {
@@ -75,14 +72,21 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
   // --- VOICE OUTPUT (TTS) ---
   const speakMessage = (text: string, id: string) => {
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+      window.speechSynthesis.cancel(); // Stop any current speech
+      
+      if (speakingMsgId === id) {
+          setSpeakingMsgId(null);
+          return;
+      }
+
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'vi-VN';
-      utterance.rate = isSeniorMode ? 0.9 : 1.0;
+      utterance.rate = isSeniorMode ? 0.85 : 1.0; 
+      
       utterance.onstart = () => setSpeakingMsgId(id);
       utterance.onend = () => setSpeakingMsgId(null);
       utterance.onerror = () => setSpeakingMsgId(null);
-      speechRef.current = utterance;
+      
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -105,6 +109,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
             Người dùng hiện tại: ${user?.name || 'Bạn'}, ${isSeniorMode ? 'là Người Cao Tuổi' : 'người dùng phổ thông'}.
             Nhiệm vụ: Phân tích rủi ro, tìm địa điểm (đồn công an, ngân hàng) qua Google Maps, hướng dẫn dùng app.
             Quy tắc: Không khuyên chuyển tiền, không hỏi OTP. Luôn cảnh báo nếu có dấu hiệu lừa đảo.
+            Phản hồi: Ngắn gọn, súc tích, dễ hiểu.
           `;
 
           if (apiKey) {
@@ -119,13 +124,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
           }
 
           if (messages.length === 0) {
-              setMessages([{
+              const greeting = isSeniorMode 
+                  ? `Chào bác ${user?.name || ''}! Cháu là Trợ lý An ninh. Bác cần giúp gì cứ nhắn hoặc nói cho cháu nhé.`
+                  : `Xin chào ${user?.name || 'bạn'}! Tôi là Trợ lý An ninh TruthShield. Tôi có thể giúp bạn kiểm tra tin nhắn lừa đảo hoặc tư vấn về an toàn.`;
+                  
+              const welcomeMsg = {
                 id: 'welcome',
-                role: 'model',
-                text: isSeniorMode 
-                  ? `Chào bác ${user?.name || ''}! Cháu là Trợ lý An ninh AI.\nBác có nhận được tin nhắn hay cuộc gọi lạ nào không? Cháu sẽ giúp bác kiểm tra ngay.`
-                  : `Xin chào ${user?.name || 'bạn'}! Tôi là Trợ lý An ninh TruthShield.\n\nTôi có thể giúp bạn kiểm tra tin nhắn lừa đảo, tìm đồn công an gần nhất, hoặc tư vấn về các thủ đoạn lừa đảo mới. Bạn cần hỗ trợ gì không?`
-              }]);
+                role: 'model' as const,
+                text: greeting
+              };
+              setMessages([welcomeMsg]);
           }
 
       } catch (error) {
@@ -160,17 +168,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
          color: 'bg-blue-600'
        });
     }
-    if (lower.includes('tin nhắn') || lower.includes('link') || lower.includes('sms')) {
+    if (lower.includes('công an') || lower.includes('lừa đảo') || lower.includes('khẩn cấp') || lower.includes('113')) {
        actions.push({
-         label: 'Kiểm tra tin nhắn',
-         icon: <Shield size={16}/>,
-         action: () => onNavigate('messagescan'),
-         color: 'bg-green-600'
-       });
-    }
-    if (lower.includes('công an') || lower.includes('lừa đảo') || lower.includes('khẩn cấp') || lower.includes('113') || lower.includes('báo cáo')) {
-       actions.push({
-         label: 'Hỗ trợ khẩn cấp', 
+         label: 'Gọi 113 Khẩn Cấp', 
          icon: <ShieldAlert size={16}/>,
          action: () => setShowEmergencyModal(true), 
          color: 'bg-red-600'
@@ -188,6 +188,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
   };
 
   const handleMicClick = () => {
+    triggerHaptic('tap');
+    
     if (isListening) {
       if (recognitionRef.current) recognitionRef.current.stop();
       setIsListening(false);
@@ -196,7 +198,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
 
     setIsListening(true);
     
-    // Browser Speech API support check
     const Window = window as any;
     const SpeechRecognition = Window.SpeechRecognition || Window.webkitSpeechRecognition;
 
@@ -207,7 +208,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
       recognition.interimResults = false;
 
       recognition.onstart = () => {
-         // UI update handled by state
+         if(isSeniorMode) speakUI("Đang nghe bác nói...");
       };
 
       recognition.onresult = (event: any) => {
@@ -217,9 +218,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
       };
 
       recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
         setIsListening(false);
-        // Optional: Could trigger fallback here, but simpler to just stop on error
+        if(isSeniorMode) speakUI("Cháu không nghe rõ, bác nói lại nhé.");
       };
 
       recognition.onend = () => {
@@ -229,18 +229,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
       recognition.start();
       recognitionRef.current = recognition;
     } else {
-      // Fallback Simulation
       setTimeout(() => {
         const simulatedText = "Số 0909 này có phải lừa đảo không?";
         setInput((prev) => (prev ? prev + ' ' + simulatedText : simulatedText));
         setIsListening(false);
       }, 2000);
     }
-  };
-
-  const removeAttachment = () => {
-      setAttachedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const getFileIcon = (type: string) => {
@@ -254,7 +248,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
   const handleSend = async (textOverride?: string) => {
     const textToSend = textOverride || input;
     
-    // Allow sending if text OR file exists
     if ((!textToSend.trim() && !attachedFile) || isLoading) return;
 
     const currentFile = attachedFile;
@@ -264,7 +257,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
         size: currentFile.size 
     } : undefined;
 
-    // Reset Input UI
     setInput('');
     setAttachedFile(null);
     setIsListening(false);
@@ -274,7 +266,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
     setIsLoading(true);
     stopSpeaking();
 
-    // 1. Add User Message
     const userMsg: Message = { 
         id: Date.now().toString(), 
         role: 'user', 
@@ -329,10 +320,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
 
         setMessages(prev => [...prev, modelMsg]);
         setIsLoading(false);
-        
-        if (isSeniorMode) {
-            speakMessage(cleanText, modelMsg.id);
-        }
     }
   };
 
@@ -345,307 +332,181 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ onNavigate }) => {
       "Báo cáo lừa đảo"
   ];
 
+  // --- CONDITIONAL STYLES ---
+  // Senior Mode Text Scaling
+  const messageTextClass = isSeniorMode ? 'text-xl leading-relaxed p-4' : 'text-sm leading-relaxed p-3';
+  const inputTextClass = isSeniorMode ? 'text-xl' : 'text-base';
+  const suggestionTextClass = isSeniorMode ? 'text-base px-4 py-3' : 'text-xs px-3 py-1.5';
+  const iconSize = isSeniorMode ? 28 : 20;
+
   return (
-    <div className={`flex flex-col h-full bg-[#F8FAFC] relative overflow-hidden animate-in fade-in duration-300 ${isSeniorMode ? 'text-lg' : ''}`}>
+    <div className={`flex flex-col h-full bg-[#F8FAFC] relative overflow-hidden animate-in fade-in duration-300`}>
         
-        {/* --- HEADER --- */}
-        <div className={`px-4 py-4 border-b transition-colors duration-500 z-10 shadow-sm flex items-center gap-3 ${
-            riskLevel === 'danger' ? 'bg-red-600 text-white border-red-700' :
-            riskLevel === 'warning' ? 'bg-amber-500 text-white border-amber-600' :
-            'bg-white text-slate-900 border-slate-200'
-        }`}>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-inner ${
-                 riskLevel === 'safe' ? 'bg-blue-100 text-blue-600' : 'bg-white/20 text-white'
+        {/* HEADER */}
+        <div className={`px-4 py-3 border-b transition-colors duration-500 z-10 shadow-sm flex items-center gap-3 bg-white`}>
+            <div className={`rounded-full flex items-center justify-center shadow-inner flex-shrink-0 w-10 h-10 ${
+                 riskLevel === 'safe' ? 'bg-blue-100 text-blue-600' : 
+                 riskLevel === 'danger' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
             }`}>
-                {riskLevel === 'danger' ? <ShieldAlert size={28} className="animate-pulse" /> : 
-                 riskLevel === 'warning' ? <AlertTriangle size={28} /> : 
-                 <Bot size={28} />}
+                {riskLevel === 'danger' ? <ShieldAlert size={iconSize} /> : 
+                 riskLevel === 'warning' ? <AlertTriangle size={iconSize} /> : 
+                 <Bot size={iconSize} />}
             </div>
-            <div className="flex-1">
-                <h2 className={`font-black leading-none ${isSeniorMode ? 'text-2xl' : 'text-lg'}`}>
-                    {riskLevel === 'danger' ? 'CẢNH BÁO RỦI RO CAO' : 
+            <div className="flex-1 min-w-0">
+                <h2 className={`font-black leading-none text-slate-900 ${isSeniorMode ? 'text-2xl' : 'text-lg'}`}>
+                    {riskLevel === 'danger' ? 'CẢNH BÁO RỦI RO' : 
                      riskLevel === 'warning' ? 'Cần Cảnh Giác' : 
                      'Trợ Lý An Ninh AI'}
                 </h2>
                 <p className={`font-bold uppercase tracking-wide opacity-80 mt-1 flex items-center gap-1 ${isSeniorMode ? 'text-sm' : 'text-xs'}`}>
-                    <span className={`w-2 h-2 rounded-full ${riskLevel === 'safe' ? 'bg-green-500' : 'bg-white animate-pulse'}`}></span>
-                    {riskLevel === 'danger' ? 'Phát hiện dấu hiệu lừa đảo' : 'Đang trực tuyến 24/7'}
+                    <span className={`w-2 h-2 rounded-full ${riskLevel === 'safe' ? 'bg-green-500' : 'bg-slate-400'}`}></span>
+                    {riskLevel === 'danger' ? 'Phát hiện lừa đảo' : 'Đang trực tuyến'}
                 </p>
             </div>
             {speakingMsgId && (
-                <button onClick={stopSpeaking} className="p-2 bg-white/20 rounded-full text-white hover:bg-white/30 transition-colors animate-pulse">
-                    <Volume2 size={24} />
+                <button onClick={stopSpeaking} className={`p-2 bg-slate-100 rounded-full text-slate-600 animate-pulse`}>
+                    <Volume2 size={iconSize} />
                 </button>
             )}
         </div>
 
-        {/* --- CHAT AREA --- */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-40 scroll-smooth">
+        {/* CHAT AREA */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-40 scroll-smooth">
             {messages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2 duration-300`}>
-                    
-                    <div className={`flex ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-end gap-2 max-w-[95%] md:max-w-[85%]`}>
+                    <div className={`flex ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-end gap-2 max-w-[98%] md:max-w-[85%]`}>
+                        
+                        {/* Bot Avatar */}
                         {msg.role === 'model' && (
                             <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mb-1 shadow-sm ${
                                 msg.isRisk ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
                             }`}>
-                                <Shield size={16} />
+                                <Shield size={isSeniorMode ? 20 : 16} />
                             </div>
                         )}
 
-                        <div className={`p-4 rounded-2xl shadow-sm leading-relaxed whitespace-pre-wrap ${
+                        {/* Bubble */}
+                        <div className={`rounded-2xl shadow-sm whitespace-pre-wrap relative group ${messageTextClass} ${
                             msg.role === 'user' 
                                 ? 'bg-blue-600 text-white rounded-br-sm' 
                                 : msg.isRisk 
                                     ? 'bg-red-50 border border-red-200 text-red-900 rounded-bl-sm' 
                                     : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm'
-                        } ${isSeniorMode ? 'text-xl' : 'text-base'}`}>
+                        }`}>
                             
-                            {/* Attachment Display */}
                             {msg.attachment && (
-                                <div className={`mb-3 p-2 rounded-xl flex items-center gap-3 ${msg.role === 'user' ? 'bg-white/20' : 'bg-slate-100'}`}>
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${msg.role === 'user' ? 'bg-white/20' : 'bg-white'}`}>
+                                <div className={`mb-2 p-2 rounded-xl flex items-center gap-3 ${msg.role === 'user' ? 'bg-white/20' : 'bg-slate-100'}`}>
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${msg.role === 'user' ? 'bg-white/20' : 'bg-white'}`}>
                                         {getFileIcon(msg.attachment.type)}
                                     </div>
                                     <div className="min-w-0">
-                                        <div className={`text-xs font-bold truncate max-w-[150px] ${msg.role === 'user' ? 'text-white' : 'text-slate-800'}`}>
+                                        <div className={`text-xs font-bold truncate max-w-[120px] ${msg.role === 'user' ? 'text-white' : 'text-slate-800'}`}>
                                             {msg.attachment.name}
-                                        </div>
-                                        <div className={`text-[10px] opacity-80 ${msg.role === 'user' ? 'text-blue-100' : 'text-slate-500'}`}>
-                                            {Math.round(msg.attachment.size / 1024)} KB
                                         </div>
                                     </div>
                                 </div>
                             )}
-
+                            
                             {msg.text}
-
-                            {msg.role === 'model' && (
-                                <div className="mt-2 flex justify-end">
-                                    <button 
-                                        onClick={() => speakingMsgId === msg.id ? stopSpeaking() : speakMessage(msg.text, msg.id)}
-                                        className={`p-1.5 rounded-full transition-colors ${
-                                            msg.isRisk ? 'hover:bg-red-100 text-red-400' : 'hover:bg-slate-100 text-slate-400'
-                                        } ${speakingMsgId === msg.id ? 'text-blue-600 bg-blue-50' : ''}`}
-                                    >
-                                        {speakingMsgId === msg.id ? <StopCircle size={isSeniorMode ? 24 : 16} /> : <Volume2 size={isSeniorMode ? 24 : 16} />}
-                                    </button>
-                                </div>
-                            )}
                         </div>
+
+                        {/* TTS Button - NEXT TO BUBBLE (Same Flex Container) */}
+                        {msg.role === 'model' && (
+                            <button 
+                                onClick={() => speakMessage(msg.text, msg.id)}
+                                className={`p-2 rounded-full flex-shrink-0 transition-colors self-center ${
+                                    speakingMsgId === msg.id 
+                                    ? 'bg-blue-100 text-blue-600 animate-pulse' 
+                                    : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                }`}
+                                aria-label="Đọc tin nhắn"
+                            >
+                                {speakingMsgId === msg.id ? <StopCircle size={isSeniorMode ? 28 : 20} /> : <Volume2 size={isSeniorMode ? 28 : 20} />}
+                            </button>
+                        )}
                     </div>
-
-                    {msg.groundingChunks && msg.groundingChunks.length > 0 && (
-                        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar mt-2 w-full pl-10">
-                            {msg.groundingChunks.map((chunk, idx) => {
-                                if (chunk.web?.uri && (chunk.web.uri.includes('google.com/maps') || chunk.web.title)) {
-                                    return (
-                                        <a 
-                                            key={idx}
-                                            href={chunk.web.uri}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex-shrink-0 bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-start gap-3 w-72 group"
-                                        >
-                                            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
-                                                <MapPin size={24} />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-bold text-slate-800 text-base truncate">{chunk.web.title}</div>
-                                                <div className="text-xs text-slate-500 mt-1 flex items-center gap-1 font-medium">
-                                                    Mở Google Maps <Navigation size={10} />
-                                                </div>
-                                            </div>
-                                        </a>
-                                    );
-                                }
-                                return null;
-                            })}
-                        </div>
-                    )}
-
-                    {msg.suggestedActions && msg.suggestedActions.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2 pl-10">
-                            {msg.suggestedActions.map((action, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={action.action}
-                                    className={`${action.color} text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center gap-2`}
-                                >
-                                    {action.icon} {action.label}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
                 </div>
             ))}
             
             {isLoading && (
                 <div className="flex justify-start">
-                     <div className="bg-slate-100 text-slate-500 px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-2">
-                         <Loader2 size={20} className="animate-spin" />
+                     <div className={`bg-slate-100 text-slate-500 rounded-2xl rounded-tl-sm flex items-center gap-2 ${messageTextClass}`}>
+                         <Loader2 size={isSeniorMode ? 24 : 20} className="animate-spin" />
                          <span className="font-bold">AI đang phân tích...</span>
                      </div>
                 </div>
             )}
-            
             <div ref={messagesEndRef} />
         </div>
 
-        {/* --- MULTIMODAL INPUT BAR --- */}
+        {/* INPUT BAR - ALWAYS VISIBLE, SAME LAYOUT */}
         <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-20 pb-safe">
-            
-            {/* Quick Suggestions Chips */}
-            <div className="flex gap-2 overflow-x-auto p-3 no-scrollbar bg-slate-50/50 backdrop-blur-sm border-b border-slate-100">
+            {/* Quick Suggestions */}
+            <div className="flex gap-2 overflow-x-auto p-2 no-scrollbar bg-slate-50/50 backdrop-blur-sm border-b border-slate-100">
                 {quickSuggestions.map((suggestion, idx) => (
-                    <button
-                        key={idx}
-                        onClick={() => handleSend(suggestion)}
-                        className="bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-600 text-slate-600 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition-all active:scale-95"
-                    >
+                    <button key={idx} onClick={() => handleSend(suggestion)} className={`bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-600 text-slate-600 rounded-full font-bold whitespace-nowrap shadow-sm transition-colors ${suggestionTextClass}`}>
                         {suggestion}
                     </button>
                 ))}
             </div>
 
-            {/* Attachment Preview */}
-            {attachedFile && (
-                <div className="px-4 pt-2">
-                    <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 pr-3 pl-3 py-2 rounded-xl animate-in slide-in-from-bottom-2">
-                        <div className="bg-white p-1.5 rounded-lg shadow-sm">
-                            {getFileIcon(attachedFile.type)}
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-bold text-slate-800 truncate max-w-[200px]">{attachedFile.name}</span>
-                            <span className="text-[10px] text-slate-500 font-medium">{(attachedFile.size / 1024).toFixed(1)} KB</span>
-                        </div>
-                        <button onClick={removeAttachment} className="ml-2 p-1 hover:bg-blue-100 rounded-full text-slate-400 hover:text-slate-600">
-                            <X size={14} />
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Input Row */}
-            <div className="p-3 md:p-4 flex items-end gap-2 max-w-4xl mx-auto">
-                 {/* Upload Button */}
+            {/* Main Input Row */}
+            <div className="p-3 flex items-end gap-2 max-w-4xl mx-auto">
                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors flex-shrink-0"
-                    title="Đính kèm tệp"
+                    onClick={() => fileInputRef.current?.click()} 
+                    className={`text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors flex-shrink-0 flex items-center justify-center h-12 w-12`}
                  >
-                     <Paperclip size={24} />
+                     <Paperclip size={iconSize} />
                  </button>
-                 <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    onChange={handleFileSelect} 
-                    accept="image/*,audio/*,video/*,.pdf,.txt"
-                 />
-
-                 {/* Text Input */}
-                 <div className={`flex-1 bg-slate-100 rounded-[1.5rem] flex items-center px-4 border border-transparent focus-within:border-blue-500 focus-within:bg-white transition-all ${
-                     isSeniorMode ? 'py-3' : 'py-2'
-                 }`}>
+                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileSelect} accept="image/*,audio/*,video/*,.pdf,.txt" />
+                 
+                 <div className={`flex-1 bg-slate-100 rounded-[2rem] flex items-center border border-transparent focus-within:border-blue-500 focus-within:bg-white transition-all py-2 px-4`}>
                      <input 
                         ref={inputRef}
-                        className={`flex-1 bg-transparent border-none outline-none text-slate-900 placeholder-slate-400 max-h-32 ${
-                            isSeniorMode ? 'text-xl' : 'text-base'
-                        } ${isListening ? 'animate-pulse placeholder:text-blue-500' : ''}`}
-                        placeholder={isListening ? "Đang nghe bạn nói..." : (isSeniorMode ? "Nhập câu hỏi của bác..." : "Nhập tin nhắn...")}
+                        className={`flex-1 bg-transparent border-none outline-none text-slate-900 placeholder-slate-400 max-h-32 w-full ${inputTextClass} ${isListening ? 'animate-pulse placeholder:text-blue-500' : ''}`}
+                        placeholder={isListening ? "Đang nghe..." : "Nhập tin nhắn..."}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                      />
                  </div>
-
-                 {/* Mic Button (Dictation) */}
+                 
                  <button 
-                    onClick={handleMicClick}
-                    className={`p-3 rounded-full transition-all flex-shrink-0 ${
-                        isListening 
-                        ? 'bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse scale-110' 
-                        : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
-                    }`}
-                    title="Nhập bằng giọng nói"
+                    onClick={handleMicClick} 
+                    className={`rounded-full transition-all flex-shrink-0 flex items-center justify-center h-12 w-12 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
                  >
-                     {isListening ? <MicOff size={24} /> : <Mic size={24} />}
+                     {isListening ? <MicOff size={iconSize} /> : <Mic size={iconSize} />}
                  </button>
-
-                 {/* Send Button */}
+                 
                  <button 
-                    onClick={() => handleSend()}
-                    disabled={(!input.trim() && !attachedFile) || isLoading}
-                    className={`rounded-full flex items-center justify-center text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 disabled:scale-100 flex-shrink-0 ${
-                        riskLevel === 'danger' ? 'bg-red-600 shadow-red-200' : 'bg-blue-600 shadow-blue-200'
-                    } ${isSeniorMode ? 'w-14 h-14' : 'w-12 h-12'}`}
+                    onClick={() => handleSend()} 
+                    disabled={(!input.trim() && !attachedFile) || isLoading} 
+                    className={`bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg transition-transform active:scale-95 disabled:opacity-50 flex-shrink-0 h-12 w-12`}
                  >
-                     {isLoading ? <Loader2 size={24} className="animate-spin" /> : <Send size={isSeniorMode ? 28 : 20} className="ml-0.5" />}
+                     {isLoading ? <Loader2 size={iconSize} className="animate-spin" /> : <Send size={iconSize} className="ml-0.5" />}
                  </button>
             </div>
         </div>
 
-        {/* --- SAFETY INTERSTITIAL --- */}
+        {/* Safety Modal */}
         {showEmergencyModal && (
-            <div 
-                className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-                role="dialog"
-                aria-modal="true"
-            >
-                <div className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
-                    <div className="bg-red-600 p-6 text-white text-center relative">
-                        <button 
-                            onClick={() => setShowEmergencyModal(false)}
-                            className="absolute top-4 right-4 p-2 bg-red-700/50 hover:bg-red-700 rounded-full text-white/80 hover:text-white transition-colors"
-                        >
-                            <X size={20} />
-                        </button>
-                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                             <ShieldAlert size={40} />
-                        </div>
-                        <h2 className="text-2xl font-black uppercase tracking-tight">HƯỚNG DẪN KHẨN CẤP</h2>
+            <div className="fixed inset-0 z-[100] bg-slate-900/90 flex items-center justify-center p-4">
+                <div className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden">
+                    <div className="bg-red-600 p-8 text-white text-center">
+                        <ShieldAlert size={64} className="mx-auto mb-4 animate-pulse" />
+                        <h2 className="text-3xl font-black uppercase">KHẨN CẤP!</h2>
                     </div>
-                    <div className="p-6 bg-red-50">
-                        <div className="bg-white p-4 rounded-xl border border-red-100 shadow-sm mb-6">
-                            <ul className="space-y-3 text-slate-700 text-sm">
-                                <li className="flex gap-3">
-                                    <span className="text-red-500 font-bold text-lg leading-none">•</span>
-                                    <span>Hãy <span className="font-bold">giữ bình tĩnh</span>.</span>
-                                </li>
-                                <li className="flex gap-3">
-                                    <span className="text-red-500 font-bold text-lg leading-none">•</span>
-                                    <span>Di chuyển đến nơi <span className="font-bold">đông người</span> hoặc đồn công an.</span>
-                                </li>
-                                <li className="flex gap-3">
-                                    <span className="text-red-500 font-bold text-lg leading-none">•</span>
-                                    <span>Tuyệt đối <span className="font-bold text-red-600">không chuyển tiền</span>.</span>
-                                </li>
-                            </ul>
-                        </div>
-                        <div className="grid gap-3">
-                            <button 
-                                onClick={() => {
-                                    window.open('tel:113');
-                                    setShowEmergencyModal(false);
-                                }}
-                                className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black text-lg shadow-lg shadow-red-200 active:scale-95 transition-transform flex items-center justify-center gap-2 animate-pulse"
-                            >
-                                <Phone size={24} fill="currentColor" /> GỌI 113 NGAY
-                            </button>
-                            <button 
-                                onClick={() => setShowEmergencyModal(false)}
-                                className="w-full py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition-colors"
-                            >
-                                Đóng
-                            </button>
-                        </div>
+                    <div className="p-6 grid gap-4">
+                        <button onClick={() => window.open('tel:113')} className="w-full py-6 bg-red-600 text-white rounded-2xl font-black text-2xl flex items-center justify-center gap-3 shadow-lg">
+                            <Phone size={32} fill="currentColor" /> GỌI 113
+                        </button>
+                        <button onClick={() => setShowEmergencyModal(false)} className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xl">
+                            Đóng lại
+                        </button>
                     </div>
                 </div>
             </div>
         )}
-
     </div>
   );
 };

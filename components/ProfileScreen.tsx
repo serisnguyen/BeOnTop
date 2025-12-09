@@ -41,20 +41,20 @@ const ProfileScreen: React.FC = () => {
                 {user.name?.charAt(0) || <User />}
                 {!isFree && (
                     <div className="absolute bottom-0 right-0 bg-yellow-400 p-1.5 rounded-full border-4 border-white">
-                        <Crown size={14} className="text-white fill-white" />
+                        <Crown size={isSeniorMode ? 18 : 14} className="text-white fill-white" />
                     </div>
                 )}
             </div>
             <div>
                 <h1 className={`font-black text-slate-900 ${isSeniorMode ? 'text-4xl' : 'text-3xl'}`}>{user.name}</h1>
-                <p className="text-slate-500 font-medium">{user.phone}</p>
-                <div className={`inline-flex items-center gap-1 mt-2 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
+                <p className={`${isSeniorMode ? 'text-lg' : 'text-base'} text-slate-500 font-medium`}>{user.phone}</p>
+                <div className={`inline-flex items-center gap-1 mt-2 font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
                     isFree 
                     ? 'bg-slate-100 text-slate-600' 
                     : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
-                }`}>
+                } ${isSeniorMode ? 'text-sm' : 'text-xs'}`}>
                     {isFree ? 'Thành viên Free' : (
-                        <><Crown size={12} fill="currentColor"/> Premium Member</>
+                        <><Crown size={isSeniorMode ? 16 : 12} fill="currentColor"/> Premium Member</>
                     )}
                 </div>
             </div>
@@ -69,36 +69,36 @@ const ProfileScreen: React.FC = () => {
                 <div className="absolute right-0 top-0 w-32 h-32 bg-yellow-400/20 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-yellow-400/30 transition-colors"></div>
                 <div className="relative z-10 flex items-center justify-between">
                     <div>
-                        <h3 className="font-black text-xl mb-1 flex items-center gap-2 text-yellow-400">
-                            <Crown size={20} fill="currentColor" /> Nâng cấp Premium
+                        <h3 className={`font-black mb-1 flex items-center gap-2 text-yellow-400 ${isSeniorMode ? 'text-2xl' : 'text-xl'}`}>
+                            <Crown size={isSeniorMode ? 24 : 20} fill="currentColor" /> Nâng cấp Premium
                         </h3>
-                        <p className="text-slate-300 text-sm font-medium">Chỉ 49k/tháng. Quét AI không giới hạn & Dashboard độc quyền.</p>
+                        <p className={`text-slate-300 font-medium ${isSeniorMode ? 'text-base' : 'text-sm'}`}>Chỉ 49k/tháng. Quét AI không giới hạn & Dashboard độc quyền.</p>
                     </div>
                     <div className="bg-white/10 p-2 rounded-full backdrop-blur-sm">
-                        <ChevronRight className="text-white" />
+                        <ChevronRight className="text-white" size={isSeniorMode ? 28 : 24} />
                     </div>
                 </div>
             </div>
         )}
 
-        {/* --- PREMIUM DASHBOARD --- */}
-        {(!isFree && !isSeniorMode) && (
+        {/* --- PREMIUM DASHBOARD - ALWAYS VISIBLE IF PAID, SCALED FOR SENIOR --- */}
+        {!isFree && (
             <section className="mb-8 animate-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center justify-between mb-3 px-2">
-                    <h3 className="font-bold text-slate-800 uppercase text-xs tracking-wider flex items-center gap-2">
-                        <Activity size={14} className="text-blue-600" /> Trung tâm An ninh
+                    <h3 className={`font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 ${isSeniorMode ? 'text-sm' : 'text-xs'}`}>
+                        <Activity size={isSeniorMode ? 18 : 14} className="text-blue-600" /> Trung tâm An ninh
                     </h3>
-                    <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">LIVE DATA</span>
+                    <span className={`font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ${isSeniorMode ? 'text-xs' : 'text-[10px]'}`}>LIVE DATA</span>
                 </div>
                 
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6 relative">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {/* Weekly Activity Bar Chart */}
                         <div className="md:col-span-2 h-64">
-                            <h4 className="font-bold text-slate-900 text-sm mb-6">Hoạt động tuần qua</h4>
+                            <h4 className={`font-bold text-slate-900 mb-6 ${isSeniorMode ? 'text-lg' : 'text-sm'}`}>Hoạt động tuần qua</h4>
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={activityData} barSize={12}>
-                                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} dy={10} />
+                                <BarChart data={activityData} barSize={isSeniorMode ? 16 : 12}>
+                                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fontSize: isSeniorMode ? 14 : 10, fill: '#94a3b8'}} dy={10} />
                                     <YAxis hide />
                                     <Tooltip 
                                         cursor={{fill: '#f1f5f9', radius: 4}} 
@@ -113,7 +113,7 @@ const ProfileScreen: React.FC = () => {
 
                         {/* Risk Distribution Pie Chart */}
                         <div className="h-64 flex flex-col items-center justify-center relative">
-                            <h4 className="font-bold text-slate-900 text-sm mb-2 absolute top-0 left-0">Phân loại rủi ro</h4>
+                            <h4 className={`font-bold text-slate-900 mb-2 absolute top-0 left-0 ${isSeniorMode ? 'text-lg' : 'text-sm'}`}>Phân loại rủi ro</h4>
                             <ResponsiveContainer width="100%" height={180}>
                                 <PieChart>
                                     <Pie 
@@ -132,7 +132,7 @@ const ProfileScreen: React.FC = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                             {/* Custom Legend */}
-                            <div className="flex gap-4 text-[10px] font-bold text-slate-500 mt-2">
+                            <div className={`flex gap-4 font-bold text-slate-500 mt-2 ${isSeniorMode ? 'text-sm' : 'text-[10px]'}`}>
                                 <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> An toàn</div>
                                 <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"></span> Spam</div>
                                 <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Scam</div>
@@ -148,8 +148,8 @@ const ProfileScreen: React.FC = () => {
             
             {/* Display / Accessibility */}
             <section>
-                <h3 className="font-bold text-slate-400 uppercase text-xs tracking-wider mb-3 px-2 flex items-center gap-2">
-                    <Eye size={14} /> Hiển thị & Truy cập
+                <h3 className={`font-bold text-slate-400 uppercase tracking-wider mb-3 px-2 flex items-center gap-2 ${isSeniorMode ? 'text-sm' : 'text-xs'}`}>
+                    <Eye size={isSeniorMode ? 18 : 14} /> Hiển thị & Truy cập
                 </h3>
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6">
                      <div className="flex items-center justify-between">
@@ -161,9 +161,9 @@ const ProfileScreen: React.FC = () => {
                         </div>
                         <button 
                             onClick={toggleSeniorMode}
-                            className={`w-14 h-8 rounded-full transition-colors relative ${isSeniorMode ? 'bg-purple-600' : 'bg-slate-200'}`}
+                            className={`rounded-full transition-colors relative ${isSeniorMode ? 'w-16 h-9 bg-purple-600' : 'w-14 h-8 bg-slate-200'}`}
                         >
-                            <div className={`w-6 h-6 bg-white rounded-full absolute top-1 transition-all shadow-sm ${isSeniorMode ? 'left-7' : 'left-1'}`}></div>
+                            <div className={`bg-white rounded-full absolute top-1 transition-all shadow-sm ${isSeniorMode ? 'w-7 h-7 left-8' : 'w-6 h-6 left-1'}`}></div>
                         </button>
                     </div>
                 </div>
@@ -171,8 +171,8 @@ const ProfileScreen: React.FC = () => {
 
             {/* AI Customization */}
             <section>
-                <h3 className="font-bold text-slate-400 uppercase text-xs tracking-wider mb-3 px-2 flex items-center gap-2">
-                    <Settings size={14} /> Cấu hình AI Bảo Vệ
+                <h3 className={`font-bold text-slate-400 uppercase tracking-wider mb-3 px-2 flex items-center gap-2 ${isSeniorMode ? 'text-sm' : 'text-xs'}`}>
+                    <Settings size={isSeniorMode ? 18 : 14} /> Cấu hình AI Bảo Vệ
                 </h3>
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-6 relative">
                     
@@ -194,7 +194,7 @@ const ProfileScreen: React.FC = () => {
                             <label className={`font-bold text-slate-800 flex items-center gap-2 ${isSeniorMode ? 'text-lg' : 'text-sm'}`}>
                                 <Shield size={isSeniorMode ? 20 : 16} className="text-blue-600" /> Ngưỡng Cảnh Báo
                             </label>
-                            <span className="font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg text-sm">{user.riskThreshold || 70}/100</span>
+                            <span className={`font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg ${isSeniorMode ? 'text-base' : 'text-sm'}`}>{user.riskThreshold || 70}/100</span>
                         </div>
                         <input 
                             type="range" 
@@ -222,10 +222,10 @@ const ProfileScreen: React.FC = () => {
                         </div>
                         <button 
                             onClick={() => updateSettings({ autoHangupHighRisk: !user.autoHangupHighRisk })}
-                            className={`w-12 h-7 rounded-full transition-colors relative ${user.autoHangupHighRisk ? 'bg-slate-800' : 'bg-slate-200'}`}
+                            className={`rounded-full transition-colors relative ${user.autoHangupHighRisk ? 'bg-slate-800' : 'bg-slate-200'} ${isSeniorMode ? 'w-14 h-8' : 'w-12 h-7'}`}
                             disabled={isFree}
                         >
-                            <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all shadow-sm ${user.autoHangupHighRisk ? 'left-6' : 'left-1'}`}></div>
+                            <div className={`bg-white rounded-full absolute top-1 transition-all shadow-sm ${user.autoHangupHighRisk ? (isSeniorMode ? 'left-7' : 'left-6') : 'left-1'} ${isSeniorMode ? 'w-6 h-6' : 'w-5 h-5'}`}></div>
                         </button>
                     </div>
                 </div>
@@ -233,8 +233,8 @@ const ProfileScreen: React.FC = () => {
 
              {/* Blocked Numbers Section */}
              <section>
-                <h3 className="font-bold text-slate-400 uppercase text-xs tracking-wider mb-3 px-2 flex items-center gap-2">
-                    <Ban size={14} /> Danh sách chặn
+                <h3 className={`font-bold text-slate-400 uppercase tracking-wider mb-3 px-2 flex items-center gap-2 ${isSeniorMode ? 'text-sm' : 'text-xs'}`}>
+                    <Ban size={isSeniorMode ? 18 : 14} /> Danh sách chặn
                 </h3>
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                      <button 
@@ -252,7 +252,7 @@ const ProfileScreen: React.FC = () => {
                                  <p className={`text-slate-500 ${isSeniorMode ? 'text-base' : 'text-xs'}`}>Quản lý danh sách đen</p>
                              </div>
                          </div>
-                         <ChevronRight className={`text-slate-300 transition-transform ${showBlocked ? 'rotate-90' : ''}`} />
+                         <ChevronRight className={`text-slate-300 transition-transform ${showBlocked ? 'rotate-90' : ''}`} size={isSeniorMode ? 28 : 20} />
                      </button>
                      
                      {showBlocked && (
@@ -261,7 +261,7 @@ const ProfileScreen: React.FC = () => {
                                  <div className="divide-y divide-slate-200">
                                      {user.blockedNumbers.map(phone => (
                                          <div key={phone} className="p-4 flex items-center justify-between hover:bg-slate-100">
-                                             <span className="font-bold text-slate-700">{phone}</span>
+                                             <span className={`font-bold text-slate-700 ${isSeniorMode ? 'text-lg' : 'text-base'}`}>{phone}</span>
                                              <button 
                                                  onClick={() => unblockNumber(phone)}
                                                  className="text-red-500 hover:bg-red-100 p-2 rounded-lg text-sm font-bold flex items-center gap-1"

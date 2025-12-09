@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { 
   User, 
   AlertHistoryItem, 
@@ -67,6 +67,10 @@ interface AuthContextType {
 
   role: 'elder' | 'user'; 
   addContact: (contact: Omit<ContactItem, 'id'>) => void;
+
+  // Accessibility
+  triggerHaptic: (type?: 'success' | 'error' | 'tap') => void;
+  speakUI: (text: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -214,11 +218,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsOnboarding(false);
   };
 
+  // --- ACCESSIBILITY FUNCTIONS ---
+  const triggerHaptic = useCallback((type: 'success' | 'error' | 'tap' = 'tap') => {
+    if (navigator.vibrate) {
+        switch(type) {
+            case 'success': navigator.vibrate([50, 50, 50]); break; // Dub-dub-dub
+            case 'error': navigator.vibrate([200, 50, 200]); break; // Buzz-Buzz
+            case 'tap': navigator.vibrate(50); break; // Tick
+        }
+    }
+  }, []);
+
+  const speakUI = useCallback((text: string) => {
+      if (!user?.isSeniorMode) return;
+      if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'vi-VN';
+          utterance.rate = 0.9;
+          window.speechSynthesis.speak(utterance);
+      }
+  }, [user?.isSeniorMode]);
+
   // --- FEATURE GATING & LIMITS ---
 
   const checkLimit = (feature: 'deepfake' | 'message' | 'lookup'): boolean => {
       if (!user) return false;
-      // Monthly and Yearly are both premium plans with unlimited usage
       if (user.plan === 'monthly' || user.plan === 'yearly') return true; 
 
       const usage = user.usage;
@@ -246,15 +271,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const lookupPhoneNumber = async (phone: string): Promise<PhoneLookupResult | null> => {
       return new Promise<PhoneLookupResult | null>((resolve) => {
           setTimeout(() => {
-              // Normalize phone (remove spaces)
               const normalized = phone.replace(/\s/g, '');
               const result = MOCK_PHONE_DATABASE[normalized];
               
               if (result) {
                   resolve(result);
               } else {
-                  // Fallback for unknown numbers (procedural generation for "realism")
-                  const isRandomSpam = Math.random() < 0.3; // 30% chance of random spam
+                  const isRandomSpam = Math.random() < 0.3; 
                   resolve({
                       phoneNumber: phone,
                       carrier: 'Unknown / Chưa xác định',
@@ -264,7 +287,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                       communityLabel: isRandomSpam ? 'Có báo cáo rải rác' : 'Chưa có báo cáo từ cộng đồng'
                   });
               }
-          }, 400); // Simulate network delay
+          }, 400); 
       });
   };
 
@@ -272,7 +295,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return new Promise<void>((resolve) => {
           setTimeout(() => {
               const normalized = phone.replace(/\s/g, '');
-              // Update local mock DB in memory (reset on refresh)
               MOCK_PHONE_DATABASE[normalized] = {
                   phoneNumber: phone,
                   carrier: 'Unknown',
@@ -295,8 +317,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const toggleSeniorMode = () => {
       if (user) {
-          const updated = { ...user, isSeniorMode: !user.isSeniorMode };
+          const newState = !user.isSeniorMode;
+          const updated = { ...user, isSeniorMode: newState };
           persistUser(updated);
+          
+          triggerHaptic('success');
+          speakUI(newState ? "Đã bật chế độ cho người cao tuổi" : "Đã tắt chế độ người cao tuổi");
       }
   };
 
@@ -321,6 +347,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       checkLimit,
       incrementUsage,
       role,
+      triggerHaptic,
+      speakUI,
       ...userActions,
     }}>
       {children}
