@@ -295,10 +295,10 @@ const DeepfakeScanner: React.FC = () => {
                       Công cụ phân tích pháp y kỹ thuật số. Phát hiện Deepfake khuôn mặt & giọng nói.
                   </p>
 
-                  {/* Powered By / Tech Stack Row */}
-                  <div className="flex items-center gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 no-scrollbar mask-gradient">
+                  {/* Powered By / Tech Stack Row - REFACTORED TO WRAP */}
+                  <div className="flex flex-wrap gap-2 pb-2">
                      {techStack.map((tech, idx) => (
-                         <div key={idx} className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm whitespace-nowrap hover:shadow-md hover:-translate-y-0.5 transition-all cursor-default">
+                         <div key={idx} className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm whitespace-nowrap hover:shadow-md transition-all cursor-default">
                             {tech.icon}
                             <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">{tech.name}</span>
                          </div>

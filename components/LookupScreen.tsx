@@ -89,10 +89,45 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
         alert(`Đã báo cáo số ${searchTerm} là ${labels[type]}!`);
     };
 
-    const getScoreColor = (score: number) => {
-        if (score > 80) return 'text-green-600';
-        if (score > 50) return 'text-amber-600';
-        return 'text-red-600';
+    const getRiskConfig = (res: PhoneLookupResult) => {
+        const isSafe = res.reputationScore >= 80 || res.tags.includes('safe') || res.tags.includes('delivery');
+        const isDanger = res.reputationScore <= 40 || res.tags.includes('scam');
+
+        if (isDanger) {
+            return {
+                bg: 'bg-red-50',
+                border: 'border-red-200',
+                text: 'text-red-600',
+                ring: 'border-red-500',
+                badgeBg: 'bg-red-100',
+                badgeText: 'text-red-700',
+                label: 'CẢNH BÁO LỪA ĐẢO',
+                Icon: ShieldAlert
+            };
+        }
+        if (isSafe) {
+            return {
+                bg: 'bg-green-50',
+                border: 'border-green-200',
+                text: 'text-green-600',
+                ring: 'border-green-500',
+                badgeBg: 'bg-green-100',
+                badgeText: 'text-green-700',
+                label: 'AN TOÀN / TIN CẬY',
+                Icon: ShieldCheck
+            };
+        }
+        // Warning / Amber
+        return {
+            bg: 'bg-amber-50',
+            border: 'border-amber-200',
+            text: 'text-amber-600',
+            ring: 'border-amber-500',
+            badgeBg: 'bg-amber-100',
+            badgeText: 'text-amber-700',
+            label: 'SỐ RÁC / CẦN CẢNH GIÁC',
+            Icon: AlertTriangle
+        };
     };
 
     const getTagBadge = (tag: string) => {
@@ -199,56 +234,61 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
             {/* Result Area */}
             {result ? (
                 <div className="animate-in slide-in-from-bottom duration-500">
-                    <div className="bg-white rounded-[32px] border border-slate-200 shadow-xl overflow-hidden mb-6">
-                        <div className={`p-8 text-center relative ${
-                            result.reputationScore < 50 ? 'bg-red-50' : 
-                            result.reputationScore < 80 ? 'bg-amber-50' : 'bg-green-50'
-                        }`}>
-                            <div className={`mx-auto rounded-full flex items-center justify-center mb-4 border-4 bg-white shadow-sm ${
-                                result.reputationScore < 50 ? 'border-red-200 text-red-600' : 
-                                result.reputationScore < 80 ? 'border-amber-200 text-amber-600' : 'border-green-200 text-green-600'
-                            } ${isSeniorMode ? 'w-32 h-32' : 'w-24 h-24'}`}>
-                                {result.reputationScore < 50 ? <ShieldAlert size={isSeniorMode ? 64 : 48} /> : 
-                                 result.reputationScore < 80 ? <AlertTriangle size={isSeniorMode ? 64 : 48} /> : <ShieldCheck size={isSeniorMode ? 64 : 48} />}
-                            </div>
-                            
-                            <h3 className={`font-black mb-1 ${isSeniorMode ? 'text-5xl' : 'text-3xl'}`}>{result.phoneNumber}</h3>
-                            <p className={`font-bold text-slate-500 mb-4 ${isSeniorMode ? 'text-2xl' : ''}`}>{result.carrier}</p>
-                            
-                            <div className="flex justify-center gap-2 mb-6">
-                                {result.tags.map((tag, i) => <div key={i}>{getTagBadge(tag)}</div>)}
-                                {result.tags.length === 0 && <span className="text-slate-400 italic text-sm">Chưa có nhãn</span>}
-                            </div>
+                    {(() => {
+                        const risk = getRiskConfig(result);
+                        return (
+                            <div className={`bg-white rounded-[32px] border ${risk.border} shadow-xl overflow-hidden mb-6`}>
+                                <div className={`p-8 text-center relative ${risk.bg}`}>
+                                    {/* Status Label */}
+                                    <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full font-black uppercase text-xs tracking-wider mb-6 bg-white border ${risk.border} ${risk.text} shadow-sm`}>
+                                        <risk.Icon size={14} fill="currentColor" className="opacity-20" />
+                                        {risk.label}
+                                    </div>
 
-                            <div className="flex justify-center gap-8 border-t border-black/5 pt-6">
-                                <div>
-                                    <div className={`font-black ${getScoreColor(result.reputationScore)} ${isSeniorMode ? 'text-5xl' : 'text-2xl'}`}>{result.reputationScore}/100</div>
-                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Điểm Uy tín</div>
+                                    {/* Big Icon */}
+                                    <div className={`mx-auto rounded-full flex items-center justify-center mb-4 border-4 bg-white shadow-sm ${risk.ring} ${risk.text} ${isSeniorMode ? 'w-32 h-32' : 'w-24 h-24'}`}>
+                                        <risk.Icon size={isSeniorMode ? 64 : 48} />
+                                    </div>
+                                    
+                                    <h3 className={`font-black mb-1 ${isSeniorMode ? 'text-5xl' : 'text-3xl'}`}>{result.phoneNumber}</h3>
+                                    <p className={`font-bold text-slate-500 mb-4 ${isSeniorMode ? 'text-2xl' : ''}`}>{result.carrier}</p>
+                                    
+                                    <div className="flex justify-center gap-2 mb-6">
+                                        {result.tags.map((tag, i) => <div key={i}>{getTagBadge(tag)}</div>)}
+                                        {result.tags.length === 0 && <span className="text-slate-400 italic text-sm">Chưa có nhãn</span>}
+                                    </div>
+
+                                    <div className="flex justify-center gap-8 border-t border-black/5 pt-6">
+                                        <div>
+                                            <div className={`font-black ${risk.text} ${isSeniorMode ? 'text-5xl' : 'text-2xl'}`}>{result.reputationScore}/100</div>
+                                            <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Điểm Uy tín</div>
+                                        </div>
+                                        <div>
+                                            <div className={`font-black text-slate-800 ${isSeniorMode ? 'text-5xl' : 'text-2xl'}`}>{result.reportCount}</div>
+                                            <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Lượt báo cáo</div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className={`font-black text-slate-800 ${isSeniorMode ? 'text-5xl' : 'text-2xl'}`}>{result.reportCount}</div>
-                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Lượt báo cáo</div>
+
+                                <div className={`p-6 ${isSeniorMode ? 'p-8' : ''}`}>
+                                    <h4 className="font-bold text-slate-500 uppercase text-xs tracking-wider mb-4">Thông tin cộng đồng</h4>
+                                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 mb-6">
+                                        <p className={`font-medium text-slate-800 ${isSeniorMode ? 'text-2xl' : 'text-base'}`}>
+                                            {result.communityLabel ? `"${result.communityLabel}"` : "Số điện thoại này chưa có nhiều dữ liệu báo cáo từ cộng đồng. Hãy cẩn trọng nếu là số lạ."}
+                                        </p>
+                                    </div>
+
+                                    <button 
+                                        onClick={() => setShowReportModal(true)}
+                                        className={`w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors ${isSeniorMode ? 'py-6 text-2xl' : 'py-4'}`}
+                                        aria-label="Báo cáo số điện thoại này"
+                                    >
+                                        <ThumbsDown size={isSeniorMode ? 28 : 20} /> Báo cáo số này
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className={`p-6 ${isSeniorMode ? 'p-8' : ''}`}>
-                            <h4 className="font-bold text-slate-500 uppercase text-xs tracking-wider mb-4">Thông tin cộng đồng</h4>
-                            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 mb-6">
-                                <p className={`font-medium text-slate-800 ${isSeniorMode ? 'text-2xl' : 'text-base'}`}>
-                                    {result.communityLabel ? `"${result.communityLabel}"` : "Số điện thoại này chưa có nhiều dữ liệu báo cáo từ cộng đồng. Hãy cẩn trọng nếu là số lạ."}
-                                </p>
-                            </div>
-
-                            <button 
-                                onClick={() => setShowReportModal(true)}
-                                className={`w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors ${isSeniorMode ? 'py-6 text-2xl' : 'py-4'}`}
-                                aria-label="Báo cáo số điện thoại này"
-                            >
-                                <ThumbsDown size={isSeniorMode ? 28 : 20} /> Báo cáo số này
-                            </button>
-                        </div>
-                    </div>
+                        );
+                    })()}
                 </div>
             ) : (
                 /* GLOBAL STATS & TOP SPAMMERS (Default View) */

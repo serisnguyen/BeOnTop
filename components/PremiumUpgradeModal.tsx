@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, Shield, Crown, Zap, MessageSquareWarning, ScanFace, Calendar, ArrowRight } from 'lucide-react';
+import { X, Check, Shield, Crown, Zap, MessageSquareWarning, ScanFace, Calendar, ArrowRight, Star, Lock } from 'lucide-react';
 import { useAuth, LIMITS } from '../context/AuthContext';
 
 interface PremiumUpgradeModalProps {
@@ -13,18 +13,11 @@ type PlanDuration = 'monthly' | 'yearly';
 const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({ onClose, triggerSource }) => {
   const { upgradeSubscription, user } = useAuth();
   const [processing, setProcessing] = useState(false);
-  const [selectedDuration, setSelectedDuration] = useState<PlanDuration>('yearly');
+  const [selectedDuration, setSelectedDuration] = useState<PlanDuration>('monthly'); 
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const isFree = user?.plan === 'free';
-
-  // Calculate Trial Date
-  const trialEndDate = new Date();
-  trialEndDate.setDate(trialEndDate.getDate() + 7);
-  const trialDateString = trialEndDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-
-  // Focus Trap and Escape Key Handler
+  // Focus Trap
   useEffect(() => {
     closeButtonRef.current?.focus();
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -39,171 +32,206 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({ onClose, trig
       setTimeout(() => {
           upgradeSubscription(selectedDuration); 
           setProcessing(false);
-          alert(`Đăng ký gói ${selectedDuration === 'monthly' ? 'Tháng' : 'Năm'} thành công!`);
+          alert(`Chào mừng thành viên Premium! Gói ${selectedDuration === 'monthly' ? 'Tháng' : 'Năm'} đã được kích hoạt.`);
           onClose();
       }, 1500);
   };
 
-  const getHeadline = () => {
-      if (triggerSource === 'deepfake_limit') return "Hết lượt quét Deepfake hôm nay!";
-      if (triggerSource === 'message_limit') return "Bạn đã dùng hết lượt quét tin nhắn!";
-      if (triggerSource === 'lookup_limit') return "Hết lượt tra cứu số lạ hôm nay!";
-      return "Mở khóa sức mạnh AI";
+  // Pricing Logic
+  const pricing = {
+      yearly: {
+          monthlyPrice: '41.000',
+          totalPrice: '499.000',
+          saving: '89k', // Updated based on 49k/mo * 12 = 588k - 499k = 89k
+          label: '1 Năm'
+      },
+      monthly: {
+          monthlyPrice: '49.000',
+          totalPrice: '49.000',
+          saving: '0',
+          label: '1 Tháng'
+      }
   };
+
+  const currentPrice = pricing[selectedDuration];
 
   return (
     <div 
-        className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 animate-in zoom-in duration-300"
+        className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-300"
         role="dialog"
         aria-modal="true"
-        onClick={onClose} // Backdrop click
     >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
+
       <div 
         ref={modalRef}
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
-        className="bg-white w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden relative flex flex-col focus:outline-none"
-        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full md:max-w-md md:rounded-[2.5rem] rounded-t-[2.5rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh] md:max-h-[85vh] animate-in slide-in-from-bottom duration-300 z-10"
       >
         
+        {/* iOS Grab Handle (Mobile Only) */}
+        <div className="md:hidden absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-white/20 rounded-full z-30"></div>
+
+        {/* Close Button */}
         <button 
             ref={closeButtonRef}
             onClick={onClose} 
-            className="absolute top-4 right-4 z-20 p-2 bg-black/5 hover:bg-black/10 rounded-full transition-colors"
+            className="absolute top-5 right-5 z-20 p-2 bg-black/20 hover:bg-black/30 text-white rounded-full transition-colors backdrop-blur-md"
         >
-            <X size={24} className="text-slate-700" />
+            <X size={20} />
         </button>
 
-        {/* Header */}
-        <div className="bg-gradient-premium h-48 relative overflow-hidden flex flex-col items-center justify-center text-center px-6 shrink-0">
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
-            <div className="relative z-10 mt-2">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg border border-white/30">
-                    <Crown size={36} className="text-yellow-300 fill-yellow-300 animate-pulse" />
+        {/* HERO HEADER - Deep Dark Blue Gradient */}
+        <div className="bg-[#0F172A] relative pt-14 pb-6 px-6 text-center overflow-hidden shrink-0">
+            {/* Glow Effects */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-gradient-to-b from-blue-900/20 to-transparent opacity-50 pointer-events-none"></div>
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-purple-500/20 rounded-full blur-[80px] pointer-events-none"></div>
+            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-500/20 rounded-full blur-[80px] pointer-events-none"></div>
+            
+            <div className="relative z-10">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-br from-amber-300 to-yellow-500 rounded-2xl flex items-center justify-center shadow-[0_0_40px_rgba(245,158,11,0.4)] mb-4 animate-float border-2 border-white/10">
+                    <Crown size={32} className="text-white drop-shadow-md" fill="currentColor" />
                 </div>
-                <h2 className="text-2xl font-black text-white leading-tight drop-shadow-md">
-                    {getHeadline()}
+                <h2 className="text-2xl font-black text-white mb-1 tracking-tight">
+                    Nâng cấp TruthShield Pro
                 </h2>
-                <div className="mt-2 inline-flex items-center gap-1 bg-white/20 backdrop-blur-sm border border-white/20 px-3 py-1 rounded-full text-white text-xs font-bold">
-                    <Calendar size={12} /> Dùng thử miễn phí 7 ngày
-                </div>
+                <p className="text-slate-400 font-medium leading-relaxed max-w-xs mx-auto text-xs">
+                    Bảo vệ toàn diện trước mọi thủ đoạn lừa đảo.
+                </p>
             </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 md:p-8 bg-white flex-1 overflow-y-auto">
+        {/* CONTENT BODY - Added no-scrollbar */}
+        <div className="flex-1 overflow-y-auto bg-white px-6 py-6 pb-36 md:pb-6 relative rounded-t-[2rem] -mt-6 no-scrollbar">
             
-            {/* PLAN TOGGLE */}
-            <div className="flex gap-4 mb-8">
-                {/* Monthly Option */}
-                <button 
-                    onClick={() => setSelectedDuration('monthly')}
-                    className={`flex-1 p-4 rounded-2xl border-2 text-left relative transition-all ${
-                        selectedDuration === 'monthly' 
-                        ? 'border-blue-600 bg-blue-50' 
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                >
-                    <div className="flex justify-between items-start mb-2">
-                        <span className={`font-bold ${selectedDuration === 'monthly' ? 'text-blue-700' : 'text-slate-500'}`}>Theo Tháng</span>
-                        {selectedDuration === 'monthly' && <Check size={18} className="text-blue-600 bg-blue-200 rounded-full p-0.5" />}
-                    </div>
-                    <div className="text-2xl font-black text-slate-900">49.000đ</div>
-                    <div className="text-xs text-slate-500 font-medium">mỗi tháng</div>
-                </button>
-
-                {/* Yearly Option */}
-                <button 
-                    onClick={() => setSelectedDuration('yearly')}
-                    className={`flex-1 p-4 rounded-2xl border-2 text-left relative transition-all ${
-                        selectedDuration === 'yearly' 
-                        ? 'border-purple-600 bg-purple-50' 
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                >
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap">
-                        TIẾT KIỆM 15%
-                    </div>
-                    <div className="flex justify-between items-start mb-2">
-                        <span className={`font-bold ${selectedDuration === 'yearly' ? 'text-purple-700' : 'text-slate-500'}`}>Theo Năm</span>
-                        {selectedDuration === 'yearly' && <Check size={18} className="text-purple-600 bg-purple-200 rounded-full p-0.5" />}
-                    </div>
-                    <div className="text-2xl font-black text-slate-900">499.000đ</div>
-                    <div className="text-xs text-slate-500 font-medium">~41.000đ / tháng</div>
-                </button>
+            {/* PLAN SELECTOR SWITCH */}
+            <div className="flex justify-center mb-6">
+                <div className="bg-slate-100 p-1 rounded-xl inline-flex relative">
+                    {/* Sliding Background */}
+                    <div 
+                        className={`absolute top-1 bottom-1 w-[50%] bg-white rounded-lg shadow-sm transition-all duration-300 ease-out ${
+                            selectedDuration === 'yearly' ? 'left-[48%]' : 'left-1'
+                        }`}
+                    ></div>
+                    
+                    <button 
+                        onClick={() => setSelectedDuration('monthly')}
+                        className={`relative z-10 px-6 py-2 rounded-lg text-sm font-bold transition-colors ${selectedDuration === 'monthly' ? 'text-slate-900' : 'text-slate-500'}`}
+                    >
+                        Theo Tháng
+                    </button>
+                    <button 
+                        onClick={() => setSelectedDuration('yearly')}
+                        className={`relative z-10 px-6 py-2 rounded-lg text-sm font-bold transition-colors ${selectedDuration === 'yearly' ? 'text-slate-900' : 'text-slate-500'}`}
+                    >
+                        Theo Năm <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-1">-15%</span>
+                    </button>
+                </div>
             </div>
 
-            {/* FEATURES */}
-            <div className="space-y-3 mb-8">
-                <FeatureRow 
-                    icon={<ScanFace size={20} />} 
-                    color="blue" 
-                    title="Quét Deepfake Không Giới Hạn" 
-                    desc={isFree ? `Gói Free chỉ được ${LIMITS.FREE.DEEPFAKE_SCANS} lượt/ngày.` : "Phân tích Video/Audio nâng cao"} 
-                />
-                <FeatureRow 
-                    icon={<MessageSquareWarning size={20} />} 
-                    color="purple" 
-                    title="Quét Tin Nhắn & Link Độc Hại" 
-                    desc={isFree ? `Gói Free giới hạn ${LIMITS.FREE.MESSAGE_SCANS} tin nhắn/ngày.` : "Phát hiện lừa đảo thời gian thực"} 
-                />
-                <FeatureRow 
-                    icon={<Shield size={20} />} 
-                    color="red" 
-                    title="Tra Cứu Số & Chặn Spam" 
-                    desc={isFree ? `Gói Free chỉ tra cứu ${LIMITS.FREE.CALL_LOOKUPS} số/ngày.` : "Cơ sở dữ liệu Global"} 
-                />
+            {/* PRICING CARD */}
+            <div className="text-center mb-8">
+                 <div className="inline-flex items-baseline justify-center gap-1">
+                    <span className="text-5xl font-black text-slate-900 tracking-tighter">{currentPrice.monthlyPrice}</span>
+                    <span className="text-2xl font-bold text-slate-400">đ</span>
+                    <span className="text-lg font-medium text-slate-400">/tháng</span>
+                 </div>
+                 <div className="mt-2 h-6"> {/* Fixed height to prevent jump */}
+                    {selectedDuration === 'yearly' ? (
+                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-green-200 shadow-sm animate-in fade-in">
+                            Thanh toán {currentPrice.totalPrice}đ / năm. Tiết kiệm {currentPrice.saving}.
+                        </span>
+                    ) : (
+                        <span className="text-slate-400 text-xs font-bold animate-in fade-in">
+                            Thanh toán linh hoạt từng tháng. Hủy bất kỳ lúc nào.
+                        </span>
+                    )}
+                 </div>
             </div>
 
+            {/* FEATURES LIST */}
+            <div className="space-y-5">
+                {/* Item 1 */}
+                <div className="flex items-center gap-4 group">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors border border-blue-100">
+                        <ScanFace size={24} />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="font-bold text-slate-900 text-sm">Quét Deepfake Không Giới Hạn</h4>
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">Phân tích Video/Audio với độ chính xác 99%.</p>
+                    </div>
+                    <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                        <Check size={14} strokeWidth={4} />
+                    </div>
+                </div>
+
+                {/* Item 2 */}
+                <div className="flex items-center gap-4 group">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-100 transition-colors border border-purple-100">
+                        <MessageSquareWarning size={24} />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="font-bold text-slate-900 text-sm">Chặn Tin Nhắn Lừa Đảo</h4>
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">AI tự động quét và cảnh báo link độc hại.</p>
+                    </div>
+                    <div className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center">
+                        <Check size={14} strokeWidth={4} />
+                    </div>
+                </div>
+
+                {/* Item 3 */}
+                <div className="flex items-center gap-4 group">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-100 transition-colors border border-amber-100">
+                        <Shield size={24} />
+                    </div>
+                    <div className="flex-1">
+                        <h4 className="font-bold text-slate-900 text-sm">Cơ Sở Dữ Liệu Global</h4>
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">Tra cứu số lạ từ nguồn dữ liệu toàn cầu.</p>
+                    </div>
+                    <div className="w-6 h-6 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center">
+                        <Check size={14} strokeWidth={4} />
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        {/* FOOTER CTA - Fixed at bottom on mobile */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-slate-100 z-20 pb-safe md:relative md:border-0 md:pt-0">
             <button 
                 onClick={handleUpgrade}
                 disabled={processing}
-                className={`w-full py-4 text-white rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all active:scale-95 flex items-center justify-center gap-2 relative overflow-hidden group focus:ring-4 focus:outline-none ${
-                    selectedDuration === 'monthly' 
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-700 shadow-blue-200 focus:ring-blue-300' 
-                        : 'bg-gradient-to-r from-purple-600 to-pink-600 shadow-purple-200 focus:ring-purple-300'
-                }`}
+                className="w-full relative group overflow-hidden bg-slate-900 text-white rounded-2xl p-1 shadow-xl shadow-slate-300 transform active:scale-95 transition-all"
             >
-                {processing ? "Đang xử lý..." : (
-                    <>
-                        Bắt đầu 7 ngày miễn phí <ArrowRight size={20} />
-                    </>
-                )}
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-800 to-slate-900"></div>
+                {/* Shimmer Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:animate-shimmer transition-transform duration-1000"></div>
+                
+                <div className="relative bg-slate-900 rounded-xl py-4 flex items-center justify-center gap-3">
+                    {processing ? (
+                        <>
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span className="font-bold">Đang xử lý...</span>
+                        </>
+                    ) : (
+                        <>
+                            <span className="font-black text-lg">Dùng thử miễn phí 7 ngày</span>
+                            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                        </>
+                    )}
+                </div>
             </button>
-            
-            <p className="text-center text-[10px] text-slate-400 mt-4 leading-tight">
-                Gia hạn tự động. Hủy bất kỳ lúc nào trước {trialDateString} để không mất phí.
-            </p>
+            <div className="text-center mt-3">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide flex items-center justify-center gap-1">
+                    <Lock size={10} /> Hủy bất kỳ lúc nào • Không cam kết
+                </p>
+            </div>
         </div>
+
       </div>
     </div>
   );
-};
-
-const FeatureRow = ({ icon, color, title, desc }: { icon: any, color: string, title: string, desc: string }) => {
-    const bgMap: Record<string, string> = {
-        blue: 'bg-blue-50 border-blue-100 text-blue-600',
-        purple: 'bg-purple-50 border-purple-100 text-purple-600',
-        red: 'bg-red-50 border-red-100 text-red-600',
-    };
-    
-    const bgIconMap: Record<string, string> = {
-        blue: 'bg-blue-100',
-        purple: 'bg-purple-100',
-        red: 'bg-red-100',
-    };
-
-    return (
-        <div className={`flex items-center gap-4 p-3 rounded-2xl border ${bgMap[color]}`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${bgIconMap[color]}`}>
-                {icon}
-            </div>
-            <div>
-                <h4 className="font-bold text-slate-900 flex items-center gap-2 text-sm">{title}</h4>
-                <p className="text-xs text-slate-500">{desc}</p>
-            </div>
-            <Check className="text-green-500 ml-auto" size={20} />
-        </div>
-    );
 };
 
 export default PremiumUpgradeModal;

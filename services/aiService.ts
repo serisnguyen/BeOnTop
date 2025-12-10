@@ -102,19 +102,15 @@ export const analyzeConversationContext = (text: string, isKnownContact: boolean
 
 /**
  * ADVANCED FORENSIC ANALYSIS (SCIENTIFIC IMPLEMENTATION)
- * 
- * Supports two distinct forensic modes:
- * 1. VISUAL FORENSICS (Image/Video): PPG (Blood flow), CNN (Visual Artifacts), Phoneme-Viseme.
- * 2. AUDIO FORENSICS (Audio): SOTA Generative Detection (NotebookLM patterns, Neural Codec Artifacts).
  */
 export const analyzeMediaDeepfake = async (file: File, type: 'image' | 'audio' | 'video'): Promise<{
     isDeepfake: boolean;
-    confidenceScore: number; // 0-100 (100 = definitely FAKE)
+    confidenceScore: number; 
     explanation: string;
     details: {
-        biologicalScore: number; // Visual: PPG | Audio: Breathing/Physiology
-        visualIntegrityScore: number; // Visual: CNN Artifacts | Audio: Spectral/Mic EQ
-        audioSyncScore: number | null; // Visual: Lip Sync | Audio: Environment/Noise Floor
+        biologicalScore: number; 
+        visualIntegrityScore: number; 
+        audioSyncScore: number | null; 
     };
     artifacts: string[];
 }> => {
@@ -134,84 +130,53 @@ export const analyzeMediaDeepfake = async (file: File, type: 'image' | 'audio' |
         if (type === 'audio') {
              systemInstruction = `
                 You are TruthShield Audio Forensic AI, a Tier-1 Psychoacoustics Engineer & GenAI Researcher specialized in detecting SOTA Neural Audio Codecs (AudioLM, SoundStorm, VITS).
+                Language: VIETNAMESE. All responses must be in Vietnamese.
 
-                Perform a Multi-Stage Forensic Audio Analysis on the provided audio track, specifically looking for signatures of High-Fidelity Generative Audio (like Google NotebookLM, ElevenLabs Turbo v2).
-
-                1. **Generative Pattern Recognition (The "Podcast Bro" Factor)**:
-                   - Analyze conversational prosody. Does it exhibit the "NotebookLM Signature"?
-                   - Look for: Overly enthusiastic agreement, perfect zero-latency turn-taking, and predictive use of back-channeling ("Right", "Exactly") and fillers ("It's like...", "You know...").
-                   - *Real humans overlap, interrupt, and have variable latency.* SOTA AI is often "too perfect".
-
-                2. **Acoustic Environment & Digital Void**:
-                   - Analyze the Noise Floor. Is the background silence "Digital Absolute Silence" or "Synthetic White Noise"?
-                   - Real recordings have chaotic, inconsistent room tone (reverb, air conditioning, movement).
-                   - Score "audioSyncScore" (Environment): 0 (Synthetic/Digital Void) to 100 (Natural Chaotic Ambience).
-
-                3. **Physiological Breathing Consistency**:
-                   - SOTA models insert breaths, but often at mathematically optimal but physiologically unlikely intervals.
-                   - Check if breath volume/duration matches the lung capacity required for the preceding/following phrase.
-                   - Score "biologicalScore" (Biometrics): 0 (Algorithmic/Unnatural) to 100 (Biological/Consistent).
-
-                4. **Microphone & EQ Consistency**:
-                   - If multiple speakers: Do they sound like they are in the EXACT same acoustic space with identical microphone profiles?
-                   - Real podcasts often have slight EQ/Mic quality variances between speakers. Perfect matching suggests single-source generation.
-                   - Score "visualIntegrityScore" (Spectral/EQ): 0 (Perfectly Synthetic Match) to 100 (Natural Variance).
+                1. **Generative Pattern Recognition**: Analyze conversational prosody.
+                2. **Acoustic Environment**: Analyze the Noise Floor.
+                3. **Physiological Breathing**: Check breathing consistency.
 
                 **OUTPUT FORMAT**:
-                Return strictly valid JSON. Language: Vietnamese. Use technical terms like 'AudioLM', 'Neural Codec', 'Digital Void'.
+                Return strictly valid JSON.
                 {
                     "isDeepfake": boolean,
                     "confidenceScore": number (0-100),
-                    "explanation": "Technical explanation. If Fake, specifically mention: 'Phát hiện đặc trưng hội thoại của AI tạo sinh (NotebookLM/AudioLM)' or 'Môi trường âm thanh kỹ thuật số (Digital Environment)'.",
+                    "explanation": "Technical explanation in Vietnamese.",
                     "details": {
                         "biologicalScore": number,
                         "visualIntegrityScore": number,
                         "audioSyncScore": number
                     },
-                    "artifacts": ["string", "string"] (List specific flaws e.g. "Nhịp điệu hội thoại quá hoàn hảo (NotebookLM pattern)", "Khoảng lặng kỹ thuật số tuyệt đối", "Hơi thở không khớp sinh học")
+                    "artifacts": ["string", "string"] (List specific flaws in Vietnamese)
                 }
              `;
-             promptText = "Analyze this AUDIO file for SOTA Generative AI signatures (NotebookLM, AudioLM).";
+             promptText = "Analyze this AUDIO file for SOTA Generative AI signatures (NotebookLM, AudioLM). Return analysis in Vietnamese.";
         } 
         // --- VISUAL FORENSIC MODE (Image/Video) ---
         else {
              systemInstruction = `
                 You are TruthShield Forensic AI, a Tier-1 Digital Forensics Expert specializing in Deepfake detection.
-                
-                Perform a Multi-Stage Forensic Analysis on the provided media. Simulate the following specific algorithms:
+                Language: VIETNAMESE. All responses must be in Vietnamese.
 
-                1. **Biological Signal Analysis (Intel FakeCatcher/PPG)**: 
-                   - Scan facial skin pixels for "photoplethysmography" (blood flow) signals. 
-                   - Real humans have subtle, rhythmic color shifts (green/red channels) due to heartbeats. 
-                   - Deepfakes often have "dead" skin pixels or spatial incoherence in color changes.
-                   - Score this as "biologicalScore": 0 (Artificial/Dead) to 100 (Natural/Alive).
-
-                2. **Visual Integrity Analysis (Forensic CNN)**: 
-                   - Detect "AI Glaze" (unusually smooth, waxy skin texture).
-                   - Look for "blending boundaries" near the hairline, jaw, or neck.
-                   - Check for lighting inconsistencies (shadows not matching light source).
-                   - Score this as "visualIntegrityScore": 0 (Many Artifacts/Fake) to 100 (Clean/Real).
-
-                3. **Audio-Visual Sync (Phoneme-Viseme)**: 
-                   - For VIDEO: Check if lip movements (visemes) perfectly align with the phonetic sounds (phonemes). Look for muscle tremors or static teeth.
-                   - Score this as "audioSyncScore": 0 (Mismatch) to 100 (Perfect Sync). Return null for images.
+                1. **Biological Signal Analysis (Intel FakeCatcher/PPG)**
+                2. **Visual Integrity Analysis (Forensic CNN)**
+                3. **Audio-Visual Sync (Phoneme-Viseme)**
 
                 **OUTPUT FORMAT**:
-                Return strictly valid JSON. Language: Vietnamese. Use terms like 'PPG', 'CNN', 'Viseme'.
-
+                Return strictly valid JSON.
                 {
                     "isDeepfake": boolean,
-                    "confidenceScore": number (0-100, where 100 is DEFINITELY FAKE),
-                    "explanation": "A detailed technical paragraph explaining findings.",
+                    "confidenceScore": number (0-100),
+                    "explanation": "A detailed technical paragraph in Vietnamese.",
                     "details": {
-                        "biologicalScore": number (0-100),
-                        "visualIntegrityScore": number (0-100),
+                        "biologicalScore": number,
+                        "visualIntegrityScore": number,
                         "audioSyncScore": number or null
                     },
-                    "artifacts": ["string", "string"] (List specific flaws e.g., "Da mặt quá mịn (AI Glaze)", "Không có tín hiệu mạch máu (PPG)")
+                    "artifacts": ["string", "string"] (List specific flaws in Vietnamese)
                 }
             `;
-            promptText = type === 'image' ? "Analyze this IMAGE." : "Analyze this VIDEO frame-by-frame.";
+            promptText = type === 'image' ? "Analyze this IMAGE in Vietnamese." : "Analyze this VIDEO frame-by-frame in Vietnamese.";
         }
 
         const response: any = await Promise.race([
@@ -237,7 +202,6 @@ export const analyzeMediaDeepfake = async (file: File, type: 'image' | 'audio' |
         const jsonText = response.text || "{}";
         const result = JSON.parse(jsonText);
         
-        // Fallback defaults if AI returns partial data
         return {
             isDeepfake: result.isDeepfake ?? false,
             confidenceScore: result.confidenceScore ?? 0,
@@ -253,7 +217,6 @@ export const analyzeMediaDeepfake = async (file: File, type: 'image' | 'audio' |
     } catch (error) {
         console.error("Deepfake Analysis Error:", error);
         clearTimer();
-        // Return a safe fallback to prevent app crash, but indicate failure
         return {
             isDeepfake: false,
             confidenceScore: 0,
@@ -287,7 +250,10 @@ export const analyzeMessageRisk = async (message: string): Promise<{
       System: You are a cybersecurity expert analyzing Vietnamese text messages for scams.
       Task: Analyze the content inside <user_content> tags. Keep explanation under 20 words.
       Classify as: SCAM, SUSPICIOUS, or SAFE.
-      Output Format: "CLASSIFICATION | Short explanation for elderly person"
+      
+      Language Requirement: **STRICTLY VIETNAMESE**. The explanation MUST be in Vietnamese.
+      
+      Output Format: "CLASSIFICATION | Short explanation in Vietnamese for elderly person"
 
       <user_content>
       ${cleanInput}

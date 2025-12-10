@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo, useCallback } from 'react';
-import { MessageSquareText, Sparkles, AlertTriangle, CheckCircle, Copy, Search, ArrowRight, ShieldAlert, ChevronDown, ChevronUp, Clock, Trash2, Share2, Crown, Lock } from 'lucide-react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { MessageSquareText, Sparkles, AlertTriangle, CheckCircle, Copy, Search, ArrowRight, ShieldAlert, ChevronDown, ChevronUp, Clock, Trash2, Share2, Crown, Lock, History, X, Loader2 } from 'lucide-react';
 import { analyzeMessageRisk } from '../services/aiService';
 import { useAuth, LIMITS } from '../context/AuthContext';
 import PremiumUpgradeModal from './PremiumUpgradeModal';
@@ -13,14 +13,11 @@ const MessageGuard: React.FC = () => {
   const [explanation, setExplanation] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
-
-  // Memoize history sorting or processing if needed in future
-  const hasHistory = useMemo(() => user?.messageHistory && user.messageHistory.length > 0, [user?.messageHistory]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const analyzeMessage = useCallback(async () => {
     if (!input.trim()) return;
 
-    // CHECK LIMITS
     if (!checkLimit('message')) {
         setShowPremiumModal(true);
         return;
@@ -50,252 +47,215 @@ const MessageGuard: React.FC = () => {
     }
   }, [input, addMessageAnalysis, checkLimit, incrementUsage]);
 
+  const handlePaste = async () => {
+    try {
+        const text = await navigator.clipboard.readText();
+        setInput(text);
+        if (textareaRef.current) textareaRef.current.focus();
+    } catch (e) {
+        alert("Không thể truy cập bộ nhớ tạm. Vui lòng dán thủ công.");
+    }
+  };
+
   const handleShare = useCallback(async () => {
     if (!result) return;
-    
     const resultText = result === 'safe' ? 'AN TOÀN' : result === 'scam' ? 'LỪA ĐẢO' : 'CẦN CẢNH GIÁC';
     const shareData = {
         title: 'Cảnh báo từ TruthShield AI',
         text: `[Kiểm tra tin nhắn]\nKết quả: ${resultText}\n\nĐánh giá: ${explanation}\n\nNội dung gốc: "${input}"`,
     };
-
     if (navigator.share) {
-        try {
-            await navigator.share(shareData);
-        } catch (err) {
-            console.log('Share canceled');
-        }
+        try { await navigator.share(shareData); } catch (err) { console.log('Share canceled'); }
     } else {
-        try {
-            await navigator.clipboard.writeText(shareData.text);
-            alert('Đã sao chép thông tin cảnh báo vào bộ nhớ tạm!');
-        } catch (e) {
-            alert('Không thể chia sẻ nội dung này.');
-        }
+        try { await navigator.clipboard.writeText(shareData.text); alert('Đã sao chép!'); } catch (e) { alert('Lỗi sao chép.'); }
     }
   }, [result, explanation, input]);
 
-  const getResultColor = (res: 'safe' | 'suspicious' | 'scam') => {
-      switch(res) {
-          case 'safe': return 'text-green-600 bg-green-50 border-green-200';
-          case 'scam': return 'text-red-600 bg-red-50 border-red-200';
-          default: return 'text-amber-600 bg-amber-50 border-amber-200';
-      }
+  // Theme configuration
+  const theme = isSeniorMode ? {
+      containerBg: 'bg-[#FFFBEB]', 
+      cardBg: 'bg-white', 
+      cardBorder: 'border-transparent', 
+      cardShadow: 'shadow-xl shadow-amber-900/5', 
+      textMain: 'text-slate-900',
+      textSub: 'text-slate-500',
+      highlight: 'text-amber-600',
+      footerBg: 'bg-slate-50/50', 
+      buttonPaste: 'text-slate-600 hover:text-amber-600',
+      buttonAction: 'bg-amber-600 text-white shadow-amber-200 hover:bg-amber-700',
+      tipCard: 'bg-white hover:border-amber-200 border-transparent shadow-sm'
+  } : {
+      containerBg: '', 
+      cardBg: 'bg-white',
+      cardBorder: 'border-slate-100',
+      cardShadow: 'shadow-lg shadow-blue-100/50',
+      textMain: 'text-slate-900',
+      textSub: 'text-slate-500',
+      highlight: 'text-blue-600',
+      footerBg: 'bg-slate-50/50',
+      buttonPaste: 'text-slate-500 hover:text-blue-600',
+      buttonAction: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-200',
+      tipCard: 'bg-white hover:border-blue-200 border-slate-100'
   };
 
   const remaining = user?.plan !== 'free' ? 999 : Math.max(0, LIMITS.FREE.MESSAGE_SCANS - (user?.usage?.messageScans || 0));
   const isLimitReached = user?.plan === 'free' && remaining === 0;
 
   return (
-    <div className={`p-4 pt-20 md:pt-10 pb-32 min-h-screen flex flex-col max-w-3xl mx-auto animate-in fade-in duration-300 ${isSeniorMode ? 'bg-slate-50' : ''}`}>
-      <div className="mb-6 md:mb-8 flex justify-between items-end">
+    <div className={`p-4 md:p-6 pt-20 md:pt-10 pb-32 min-h-screen flex flex-col max-w-4xl mx-auto animate-in fade-in duration-300 ${theme.containerBg}`}>
+      
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-6 md:mb-8">
         <div>
-            <h2 className={`${isSeniorMode ? 'text-4xl' : 'text-2xl md:text-3xl'} font-bold text-slate-800 mb-2`}>
-            Kiểm Tra <span className={isSeniorMode ? "text-pink-600" : "text-blue-600"}>Tin Nhắn</span>
+            <h2 className={`${isSeniorMode ? 'text-4xl' : 'text-3xl'} font-black ${theme.textMain} mb-2`}>
+                Kiểm Tra <span className={theme.highlight}>Tin Nhắn</span>
             </h2>
-            <p className={`${isSeniorMode ? 'text-xl text-slate-600 font-medium' : 'text-slate-500 text-sm md:text-base'}`}>
-            {isSeniorMode ? 'Bác dán hoặc nhập tin nhắn lạ vào ô bên dưới:' : 'Dán nội dung tin nhắn vào bên dưới để hệ thống AI kiểm tra.'}
+            <p className={`${isSeniorMode ? 'text-xl' : 'text-base'} ${theme.textSub} font-medium`}>
+                AI phân tích ngữ nghĩa để phát hiện lừa đảo.
             </p>
         </div>
-        {user?.plan === 'free' && (
-            <div className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${isLimitReached ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-800'}`}>
-                {isLimitReached ? "Hết lượt" : `Còn ${remaining} lượt`}
-            </div>
-        )}
+        <button 
+            onClick={() => setShowHistory(true)}
+            className={`p-3 rounded-xl border transition-all active:scale-95 bg-white shadow-sm hover:bg-slate-50`}
+        >
+            <History size={isSeniorMode ? 28 : 24} className="text-slate-600" />
+        </button>
       </div>
 
-      <div className="flex-1 flex flex-col gap-4 md:gap-6">
+      <div className="flex-1 flex flex-col gap-6">
         
-        {/* Input Area */}
-        <div className={`relative bg-white rounded-3xl shadow-sm border overflow-hidden ${isSeniorMode ? 'border-slate-300 shadow-md' : 'border-slate-200'}`}>
-          {!isSeniorMode && <div className="p-1 bg-gradient-to-r from-blue-400 to-purple-400 opacity-20"></div>}
-          
-          <div className="p-4 md:p-6 relative">
-            
-            {/* Limit Reached Overlay */}
-            {isLimitReached && (
-                <div className="absolute inset-0 z-20 bg-slate-50/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
-                    <div className="bg-white p-4 rounded-full shadow-lg mb-3">
-                        <Lock size={32} className="text-red-500" />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-1">Đã hết lượt quét miễn phí hôm nay</h3>
-                    <p className="text-slate-500 text-sm mb-4">Nâng cấp Premium để quét không giới hạn</p>
+        {/* INPUT CARD */}
+        <div className={`${theme.cardBg} rounded-[2.5rem] ${theme.cardShadow} border ${theme.cardBorder} overflow-hidden relative transition-all group`}>
+           
+           {isLimitReached && (
+                <div className="absolute inset-0 z-20 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center">
+                    <Lock size={32} className="text-slate-400 mb-2" />
                     <button 
                         onClick={() => setShowPremiumModal(true)}
                         className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:scale-105 transition-transform"
-                        aria-label="Nâng cấp Premium"
                     >
-                        <Crown size={18} className="text-yellow-400 fill-current" /> Nâng cấp ngay
+                        <Crown size={16} className="text-yellow-400 fill-current" /> Nâng cấp ngay
                     </button>
                 </div>
             )}
 
-            <textarea 
-              className={`w-full bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none resize-none p-3 md:p-4 rounded-xl border focus:border-blue-400 transition-colors ${
-                  isSeniorMode ? 'text-2xl h-48 border-slate-300 font-medium' : 'text-base md:text-lg h-32 md:h-40 border-slate-200'
+           <textarea 
+              ref={textareaRef}
+              className={`w-full bg-transparent ${theme.textMain} placeholder:text-slate-300 focus:outline-none resize-none p-8 font-medium transition-colors ${
+                  isSeniorMode ? 'text-2xl h-64' : 'text-lg h-52'
               }`}
-              placeholder={isSeniorMode ? "Ví dụ: Con đang cấp cứu, chuyển tiền gấp..." : "Ví dụ: 'Con đang cấp cứu, chuyển tiền gấp vào số này...'"}
+              placeholder={isSeniorMode ? "Ví dụ: Con đang cấp cứu, chuyển tiền gấp..." : "Dán nội dung tin nhắn vào đây..."}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isLimitReached}
-              aria-label="Nhập nội dung tin nhắn cần kiểm tra"
             ></textarea>
-            
-            <div className="flex flex-col md:flex-row gap-3 md:justify-between md:items-center mt-4 pt-4 border-t border-slate-100">
+
+           {/* Footer Actions */}
+           <div className={`${theme.footerBg} px-6 py-4 flex items-center justify-between gap-4 border-t border-slate-50`}>
                <button 
-                 onClick={async () => {
-                    try {
-                        const text = await navigator.clipboard.readText();
-                        setInput(text);
-                    } catch (e) {
-                        alert("Không thể truy cập bộ nhớ tạm. Vui lòng dán thủ công.");
-                    }
-                 }}
-                 disabled={isLimitReached}
-                 className={`font-medium flex items-center justify-center md:justify-start gap-1.5 transition-colors py-3 md:py-0 bg-slate-100 md:bg-transparent rounded-xl md:rounded-none ${
-                     isSeniorMode ? 'text-lg text-slate-700 hover:bg-slate-200' : 'text-sm text-slate-500 hover:text-blue-600'
-                 }`}
-                 aria-label="Dán tin nhắn từ bộ nhớ tạm"
+                 onClick={handlePaste}
+                 className={`flex items-center gap-2 font-bold text-sm transition-colors px-4 py-2 rounded-lg hover:bg-slate-200/50 ${theme.buttonPaste}`}
                >
-                 <Copy size={isSeniorMode ? 24 : 16} /> {isSeniorMode ? 'Dán tin nhắn' : 'Dán từ bộ nhớ'}
+                 <Copy size={18} /> Dán nhanh
                </button>
+               
                <button 
                  onClick={analyzeMessage}
                  disabled={analyzing || !input || isLimitReached}
-                 className={`text-white w-full md:w-auto rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
-                     isSeniorMode 
-                     ? 'bg-pink-600 hover:bg-pink-700 text-xl px-8 py-4 shadow-pink-200' 
-                     : 'bg-blue-600 hover:bg-blue-700 px-6 py-3 text-base shadow-blue-200'
-                 } ${analyzing || isLimitReached ? 'opacity-70' : ''}`}
-                 aria-label="Bắt đầu kiểm tra tin nhắn"
+                 className={`px-8 py-3 rounded-2xl font-black text-base flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all ${analyzing ? 'opacity-80' : ''} ${theme.buttonAction}`}
                >
-                 {analyzing ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Sparkles size={isSeniorMode ? 28 : 20} />}
-                 {analyzing ? 'Đang kiểm tra...' : 'KIỂM TRA NGAY'}
+                 {analyzing ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} className="fill-white/20" />}
+                 {analyzing ? 'ĐANG QUÉT...' : 'KIỂM TRA'}
                </button>
-            </div>
-          </div>
+           </div>
         </div>
 
-        {/* Result Area */}
+        {/* RESULT SECTION */}
         {result && (
-          <div className={`rounded-3xl p-5 md:p-6 border-2 animate-in slide-in-from-bottom duration-500 shadow-sm ${
-            result === 'safe' ? 'bg-green-50 border-green-200' : 
-            result === 'scam' ? 'bg-red-50 border-red-200' : 
-            'bg-amber-50 border-amber-200'
-          }`}>
-             <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
-                <div className="flex-shrink-0 self-start">
-                    {result === 'safe' && <CheckCircle className="text-green-600 fill-green-100" size={isSeniorMode ? 48 : 32} />}
-                    {result === 'scam' && <ShieldAlert className="text-red-600 fill-red-100" size={isSeniorMode ? 48 : 32} />}
-                    {result === 'suspicious' && <Search className="text-amber-600 fill-amber-100" size={isSeniorMode ? 48 : 32} />}
-                </div>
-                
-                <div className="flex-1">
-                    <h3 className={`font-black uppercase tracking-wide ${
-                    result === 'safe' ? 'text-green-700' : 
-                    result === 'scam' ? 'text-red-700' : 'text-amber-700'
-                    } ${isSeniorMode ? 'text-2xl md:text-3xl' : 'text-lg md:text-xl'}`}>
-                    {result === 'safe' ? 'An Toàn' : result === 'scam' ? 'CẢNH BÁO LỪA ĐẢO' : 'Cần Cảnh Giác'}
-                    </h3>
-                    <p className={`text-slate-700 font-medium mt-1 ${isSeniorMode ? 'text-xl' : 'text-sm md:text-base'}`}>
-                    {explanation}
-                    </p>
-                </div>
-
-                <button 
-                    onClick={handleShare}
-                    className={`flex items-center justify-center gap-2 font-bold transition-all active:scale-95 border-2 mt-2 md:mt-0 ${
-                        result === 'safe' ? 'bg-white border-green-200 text-green-700 hover:bg-green-100' :
-                        result === 'scam' ? 'bg-white border-red-200 text-red-700 hover:bg-red-100' :
-                        'bg-white border-amber-200 text-amber-700 hover:bg-amber-100'
-                    } ${isSeniorMode ? 'w-full md:w-auto px-6 py-3 rounded-xl text-lg' : 'p-2 md:px-4 md:py-2 rounded-xl text-sm'}`}
-                    aria-label="Chia sẻ kết quả kiểm tra"
-                >
-                    <Share2 size={isSeniorMode ? 24 : 18} />
-                    <span className={isSeniorMode ? '' : 'md:inline'}>Chia sẻ</span>
-                </button>
+          <div className="animate-in slide-in-from-bottom duration-500">
+             <div className={`rounded-[2.5rem] p-8 border-2 shadow-xl ${
+                 result === 'safe' ? 'bg-green-50 border-green-200' :
+                 result === 'scam' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+             }`}>
+                 <div className="flex items-start gap-5">
+                     <div className={`p-4 rounded-full border-4 border-white shadow-sm ${
+                         result === 'safe' ? 'bg-green-100 text-green-600' :
+                         result === 'scam' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                     }`}>
+                         {result === 'safe' ? <CheckCircle size={isSeniorMode ? 40 : 32} /> : 
+                          result === 'scam' ? <ShieldAlert size={isSeniorMode ? 40 : 32} /> : 
+                          <AlertTriangle size={isSeniorMode ? 40 : 32} />}
+                     </div>
+                     <div>
+                         <h3 className={`font-black uppercase tracking-tight mb-2 ${isSeniorMode ? 'text-3xl' : 'text-2xl'} ${
+                             result === 'safe' ? 'text-green-800' :
+                             result === 'scam' ? 'text-red-800' : 'text-amber-800'
+                         }`}>
+                             {result === 'safe' ? 'Nội dung An toàn' : 
+                              result === 'scam' ? 'CẢNH BÁO LỪA ĐẢO' : 
+                              'Cần Cảnh Giác'}
+                         </h3>
+                         <p className={`font-medium ${isSeniorMode ? 'text-xl text-slate-900' : 'text-lg text-slate-800'}`}>
+                             "{explanation}"
+                         </p>
+                     </div>
+                 </div>
+                 <div className="mt-6 pt-6 border-t border-black/5 flex justify-end">
+                     <button onClick={handleShare} className="bg-white/60 hover:bg-white text-slate-800 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
+                         <Share2 size={18} /> Chia sẻ cảnh báo
+                     </button>
+                 </div>
              </div>
           </div>
         )}
 
-        {/* HISTORY SECTION */}
-        {hasHistory && (
-          <div className={`bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-in slide-in-from-bottom duration-500 delay-150`}>
-              <button 
-                  onClick={() => setShowHistory(!showHistory)}
-                  className={`w-full flex items-center justify-between hover:bg-slate-50 transition-colors ${isSeniorMode ? 'p-6' : 'p-4'}`}
-                  aria-expanded={showHistory}
-              >
-                  <div className="flex items-center gap-3">
-                      <Clock size={isSeniorMode ? 28 : 20} className="text-slate-400" />
-                      <span className={`font-bold text-slate-700 ${isSeniorMode ? 'text-xl' : 'text-base'}`}>
-                          Lịch sử kiểm tra ({user?.messageHistory?.length})
-                      </span>
-                  </div>
-                  {showHistory ? <ChevronUp size={isSeniorMode ? 28 : 20} className="text-slate-400" /> : <ChevronDown size={isSeniorMode ? 28 : 20} className="text-slate-400" />}
-              </button>
-
-              {showHistory && (
-                  <div className="border-t border-slate-100 bg-slate-50/50">
-                      <div className="max-h-80 overflow-y-auto">
-                          {user?.messageHistory.map((item) => (
-                              <div key={item.id} className={`border-b border-slate-100 last:border-0 ${isSeniorMode ? 'p-6' : 'p-4'}`}>
-                                  <div className="flex justify-between items-start mb-2">
-                                      <span className={`text-xs font-bold uppercase px-2 py-1 rounded border ${getResultColor(item.result)}`}>
-                                          {item.result === 'safe' ? 'An Toàn' : item.result === 'scam' ? 'Lừa Đảo' : 'Nghi Ngờ'}
-                                      </span>
-                                      <span className="text-xs text-slate-400 flex items-center gap-1">
-                                          {new Date(item.timestamp).toLocaleString('vi-VN')}
-                                      </span>
-                                  </div>
-                                  <p className={`text-slate-600 mb-2 line-clamp-2 italic ${isSeniorMode ? 'text-lg' : 'text-sm'}`}>
-                                      "{item.text}"
-                                  </p>
-                                  <p className={`font-medium ${isSeniorMode ? 'text-base text-slate-800' : 'text-sm text-slate-700'}`}>
-                                      ➔ {item.explanation}
-                                  </p>
-                              </div>
-                          ))}
-                      </div>
-                      <div className="p-3 bg-white border-t border-slate-100 flex justify-center">
-                          <button 
-                              onClick={clearMessageHistory}
-                              className={`text-red-500 hover:bg-red-50 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors ${isSeniorMode ? 'text-base' : 'text-xs'}`}
-                              aria-label="Xóa toàn bộ lịch sử"
-                          >
-                              <Trash2 size={14} /> Xóa lịch sử
-                          </button>
-                      </div>
-                  </div>
-              )}
-          </div>
-        )}
-
-        {/* Tips */}
-        {!result && !showHistory && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-             <div className={`bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex items-start gap-3 ${isSeniorMode ? 'p-6' : ''}`}>
-                <div className={`rounded-lg flex items-center justify-center text-blue-600 flex-shrink-0 ${isSeniorMode ? 'w-12 h-12 bg-blue-100' : 'w-8 h-8 bg-blue-100'}`}>
-                  <MessageSquareText size={isSeniorMode ? 24 : 18} />
-                </div>
-                <div>
-                    <h4 className={`text-slate-900 font-bold mb-0.5 ${isSeniorMode ? 'text-lg' : 'text-sm'}`}>Tin nhắn ngân hàng giả</h4>
-                    <p className={`text-slate-500 ${isSeniorMode ? 'text-base' : 'text-xs'}`}>Phát hiện tin nhắn mạo danh yêu cầu mật khẩu.</p>
-                </div>
-             </div>
-             <div className={`bg-white border border-slate-200 p-4 rounded-2xl shadow-sm flex items-start gap-3 ${isSeniorMode ? 'p-6' : ''}`}>
-                <div className={`rounded-lg flex items-center justify-center text-purple-600 flex-shrink-0 ${isSeniorMode ? 'w-12 h-12 bg-purple-100' : 'w-8 h-8 bg-purple-100'}`}>
-                  <ArrowRight size={isSeniorMode ? 24 : 18} />
-                </div>
-                <div>
-                    <h4 className={`text-slate-900 font-bold mb-0.5 ${isSeniorMode ? 'text-lg' : 'text-sm'}`}>Đường link lạ</h4>
-                    <p className={`text-slate-500 ${isSeniorMode ? 'text-base' : 'text-xs'}`}>Kiểm tra các đường dẫn đáng ngờ chứa mã độc.</p>
-                </div>
-             </div>
+        {/* TIPS CARDS */}
+        {!result && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {[
+                 { icon: <MessageSquareText size={24} />, title: "Giả mạo ngân hàng", desc: "Yêu cầu mật khẩu, OTP", text: "Tài khoản của bạn bị khóa, vui lòng đăng nhập..." },
+                 { icon: <ArrowRight size={24} />, title: "Đường link lạ", desc: "Chứa mã độc, virus", text: "Nhận quà miễn phí tại http://bit.ly/..." }
+             ].map((tip, idx) => (
+                 <div 
+                    key={idx}
+                    onClick={() => setInput(tip.text)}
+                    className={`${theme.tipCard} p-6 rounded-[2rem] border shadow-sm flex items-center gap-4 transition-all cursor-pointer group active:scale-95`}
+                 >
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${isSeniorMode ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'}`}>
+                      {tip.icon}
+                    </div>
+                    <div>
+                        <h4 className={`font-black text-slate-900 ${isSeniorMode ? 'text-xl' : 'text-base'}`}>{tip.title}</h4>
+                        <p className={`text-slate-500 ${isSeniorMode ? 'text-lg' : 'text-sm'}`}>{tip.desc}</p>
+                    </div>
+                 </div>
+             ))}
           </div>
         )}
 
       </div>
+
+      {showHistory && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-6 h-[80vh] flex flex-col shadow-2xl animate-in zoom-in">
+                  <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+                      <h3 className="text-2xl font-black text-slate-900">Lịch sử</h3>
+                      <button onClick={() => setShowHistory(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"><X size={24} /></button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto space-y-4">
+                      {user?.messageHistory?.length ? (
+                          [...user.messageHistory].reverse().map(item => (
+                              <div key={item.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                                  <div className={`text-xs font-bold uppercase mb-1 ${item.result === 'safe' ? 'text-green-600' : 'text-red-600'}`}>{item.result}</div>
+                                  <p className="text-sm text-slate-600 line-clamp-2 italic">"{item.text}"</p>
+                              </div>
+                          ))
+                      ) : <div className="text-center text-slate-400 mt-10">Trống</div>}
+                  </div>
+              </div>
+          </div>
+      )}
+
       {showPremiumModal && <PremiumUpgradeModal onClose={() => setShowPremiumModal(false)} triggerSource="message_limit" />}
     </div>
   );

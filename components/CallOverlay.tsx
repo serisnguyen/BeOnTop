@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Phone, PhoneOff, ShieldCheck, ShieldAlert, AlertTriangle, User, Globe, ThumbsDown, Ban, X } from 'lucide-react';
+import { Phone, PhoneOff, ShieldCheck, ShieldAlert, AlertTriangle, User, Ban, UserCheck } from 'lucide-react';
 import { CallLogItem } from '../context/AuthContext';
 import { useAuth } from '../context/AuthContext';
 import { PhoneLookupResult } from '../types';
@@ -29,12 +29,66 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
     const [isLoadingData, setIsLoadingData] = useState(true);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const playPromiseRef = useRef<Promise<void> | null>(null);
     const AUTO_HANGUP = user?.autoHangupHighRisk ?? false;
 
-    // Contact Check
-    const contactName = user?.contacts.find(c => c.phone === call.phoneNumber)?.name || null;
+    // --- 1. TIER CLASSIFICATION LOGIC (Fixed for Demos) ---
+    
+    // Check if name exists in Contacts OR was passed in the call object (Demo)
+    const contactName = user?.contacts.find(c => c.phone === call.phoneNumber)?.name || call.contactName || null;
+    
+    // Explicit override from Demo/Simulation
+    const demoRisk = call.riskStatus; 
 
-    // --- FETCH CARRIER DATA ---
+    // Condition 1: Safe 
+    // Is Safe if: Explicitly marked 'safe' OR found in contacts
+    const isSafe = demoRisk === 'safe' || !!contactName;
+
+    // Condition 2: Dangerous
+    // Logic: If NOT safe AND (Explicitly 'scam' OR (Database says scam/high reports AND not explicitly 'suspicious'))
+    const dbReportCount = communityInfo?.reportCount || 0;
+    const dbIsScam = communityInfo?.tags.includes('scam') || false;
+    
+    const isDangerous = !isSafe && (
+        demoRisk === 'scam' || 
+        ((dbIsScam || dbReportCount >= 5) && demoRisk !== 'suspicious')
+    );
+
+    // Condition 3: Suspicious
+    // Logic: Not Safe AND Not Dangerous
+    const isSuspicious = !isSafe && !isDangerous;
+
+    // --- AUDIO HELPERS ---
+    const stopAudio = useCallback(() => {
+        if (!audioRef.current) return;
+        
+        const pause = () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+        };
+
+        // If a play request is pending, wait for it to finish before pausing
+        if (playPromiseRef.current) {
+            playPromiseRef.current
+                .then(() => pause())
+                .catch(() => { });
+        } else {
+            pause();
+        }
+    }, []);
+
+    const playAudio = useCallback(() => {
+        if (audioRef.current) {
+            playPromiseRef.current = audioRef.current.play();
+            playPromiseRef.current.catch(e => {
+                // Ignore AbortError
+            });
+        }
+    }, []);
+
+    // --- FETCH DATA ---
     useEffect(() => {
         let isMounted = true;
         const fetchInfo = async () => {
@@ -54,22 +108,21 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
         return () => { isMounted = false; };
     }, [call.phoneNumber, lookupPhoneNumber]);
 
-    // Initialize Warning Sound
+    // Initialize Audio
     useEffect(() => {
-        // Create audio instance
+        // Different sounds for different risks could be implemented here
         audioRef.current = new Audio('https://actions.google.com/sounds/v1/alarms/spaceship_alarm.ogg');
-        audioRef.current.loop = true; // Loop enabled for continuous warning
-        audioRef.current.volume = 0.8; // Increased volume
+        audioRef.current.loop = true; 
+        audioRef.current.volume = 0.8;
 
         return () => {
-            // Cleanup: Stop audio when component unmounts to prevent memory leaks and zombie sounds
+            stopAudio();
             if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.src = ""; // Detach source
+                audioRef.current.src = "";
                 audioRef.current = null;
             }
         };
-    }, []);
+    }, [stopAudio]);
 
     // Timer logic
     useEffect(() => {
@@ -86,21 +139,16 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
 
     const handleAccept = useCallback(() => {
         if (isProcessing) return;
-        if (audioRef.current) {
-             audioRef.current.pause();
-             audioRef.current.currentTime = 0;
-        }
+        stopAudio();
         setStatus('connected');
-    }, [isProcessing]);
+    }, [isProcessing, stopAudio]);
 
     const handleDecline = useCallback(async () => {
         if (isProcessing) return;
         setIsProcessing(true);
-        
-        if (audioRef.current) audioRef.current.pause();
+        stopAudio();
         setStatus('ended');
         
-        // Save history
         updateCallHistoryItem(call.id, {
             duration: timer,
             communityInfo: communityInfo || undefined,
@@ -111,12 +159,12 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
             setIncomingCall(null);
             setIsProcessing(false);
         }, 1000);
-    }, [isProcessing, call.id, timer, communityInfo, contactName, updateCallHistoryItem, setIncomingCall]);
+    }, [isProcessing, call.id, timer, communityInfo, contactName, updateCallHistoryItem, setIncomingCall, stopAudio]);
 
     const handleHangup = useCallback(async () => {
         if (isProcessing) return;
         setIsProcessing(true);
-        if (audioRef.current) audioRef.current.pause();
+        stopAudio();
 
         setStatus('ended');
         updateCallHistoryItem(call.id, {
@@ -128,12 +176,12 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
             setIncomingCall(null);
             setIsProcessing(false);
         }, 1000);
-    }, [isProcessing, call.id, timer, communityInfo, contactName, updateCallHistoryItem, setIncomingCall]);
+    }, [isProcessing, call.id, timer, communityInfo, contactName, updateCallHistoryItem, setIncomingCall, stopAudio]);
 
     const handleAutoHangup = useCallback(async () => {
         if (isProcessing) return;
         setIsProcessing(true);
-        if (audioRef.current) audioRef.current.pause();
+        stopAudio();
         
         setStatus('auto_ended');
         updateCallHistoryItem(call.id, {
@@ -146,89 +194,91 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
         setTimeout(() => {
             setIncomingCall(null);
             setIsProcessing(false);
-        }, 2000); // Show "Blocked" screen for 2s
-    }, [isProcessing, call.id, communityInfo, contactName, updateCallHistoryItem, setIncomingCall]);
+        }, 2000);
+    }, [isProcessing, call.id, communityInfo, contactName, updateCallHistoryItem, setIncomingCall, stopAudio]);
 
     // --- AUTO LOGIC ---
 
-    // 1. Play Warning if Scam Detected & Ringing
+    // 1. Play Warning if Dangerous & Ringing
     useEffect(() => {
-        if (status === 'ringing' && communityInfo?.tags.includes('scam') && !warningPlayed && !contactName) {
+        if (status === 'ringing' && isDangerous && !warningPlayed) {
             setWarningPlayed(true);
-            if (audioRef.current) {
-                audioRef.current.play().catch(e => console.error("Audio play failed", e));
-            }
+            playAudio();
         }
-    }, [status, communityInfo, warningPlayed, contactName]);
+    }, [status, isDangerous, warningPlayed, playAudio]);
 
-    // 2. Auto-Hangup Logic
+    // 2. Auto-Hangup Logic (Only for Dangerous)
     useEffect(() => {
         let timeoutId: any;
-        
-        if (status === 'ringing' && communityInfo?.tags.includes('scam') && AUTO_HANGUP && !isProcessing && !contactName) {
+        if (status === 'ringing' && isDangerous && AUTO_HANGUP && !isProcessing) {
              timeoutId = setTimeout(() => {
                  handleAutoHangup();
-             }, 3000); // 3 seconds delay before auto-hangup
+             }, 3000); 
         }
-        
-        return () => {
-            if (timeoutId) clearTimeout(timeoutId);
-        };
-    }, [status, communityInfo, AUTO_HANGUP, isProcessing, contactName, handleAutoHangup]);
+        return () => { if (timeoutId) clearTimeout(timeoutId); };
+    }, [status, isDangerous, AUTO_HANGUP, isProcessing, handleAutoHangup]);
 
 
-    // Determine UI State
-    const isScam = communityInfo?.tags.includes('scam');
-    const isSpam = communityInfo?.tags.includes('spam');
-    const isSafe = communityInfo?.tags.includes('safe') || !!contactName;
-    const isDelivery = communityInfo?.tags.includes('delivery');
+    // --- UI HELPERS ---
 
-    // HIGH OPACITY GRADIENTS
     const getBgClass = () => {
         if (status === 'auto_ended') return 'bg-slate-900';
-        if (status === 'connected') return 'bg-gradient-to-b from-slate-900 to-slate-800'; // Solid dark
+        if (status === 'connected') return 'bg-gradient-to-b from-slate-900 to-slate-800';
         
-        if (isScam) return 'bg-gradient-to-br from-red-900/95 to-rose-800/95 backdrop-blur-xl';
-        if (isSpam) return 'bg-gradient-to-br from-amber-900/95 to-orange-800/95 backdrop-blur-xl';
-        if (isSafe || isDelivery) return 'bg-gradient-to-br from-emerald-900/95 to-teal-800/95 backdrop-blur-xl';
+        // Tier 1: Safe (Green)
+        if (isSafe) return 'bg-gradient-to-br from-green-600 to-emerald-800';
         
-        // Default Unknown - Dark Blue/Slate
-        return 'bg-gradient-to-br from-slate-900/95 to-blue-900/95 backdrop-blur-xl'; 
+        // Tier 2: Dangerous (Red)
+        if (isDangerous) return 'bg-gradient-to-br from-red-600 to-rose-800';
+        
+        // Tier 3: Suspicious (Amber)
+        if (isSuspicious) return 'bg-gradient-to-br from-amber-500 to-orange-700';
+        
+        return 'bg-slate-800';
     };
 
     return (
         <div className={`fixed inset-0 z-[100] ${getBgClass()} transition-all duration-700 flex flex-col items-center justify-between py-12 px-6 text-white animate-in zoom-in-95 duration-300`}>
             
-            {/* --- HEADER --- */}
-            <div className="text-center w-full relative pt-8">
-                 {/* Auto-Ended Badge */}
-                 {status === 'auto_ended' && (
-                     <div className="bg-red-600 text-white font-black text-xl py-3 px-8 rounded-2xl inline-flex items-center gap-2 mb-6 animate-pulse shadow-xl border border-red-400">
-                         <Ban size={28} /> AI ĐÃ CHẶN CUỘC GỌI
+            {/* --- HEADER STATUS BADGE --- */}
+            <div className="text-center w-full relative pt-8 h-24 flex items-end justify-center">
+                 {status === 'auto_ended' ? (
+                     <div className="bg-red-600 text-white font-black text-xl py-3 px-8 rounded-2xl inline-flex items-center gap-2 animate-pulse shadow-xl border-2 border-red-400">
+                         <Ban size={24} /> AI ĐÃ CHẶN
                      </div>
-                 )}
-                 
-                 {/* Scam Warning Badge */}
-                 {status === 'ringing' && isScam && (
-                     <div className="bg-white text-red-700 font-black text-2xl py-3 px-8 rounded-2xl inline-flex items-center gap-3 mb-6 animate-bounce shadow-2xl border-4 border-red-200">
-                         <ShieldAlert size={32} /> CẢNH BÁO LỪA ĐẢO
-                     </div>
-                 )}
-
-                 {/* Safe Badge */}
-                 {status === 'ringing' && isSafe && (
-                     <div className="bg-white text-emerald-700 font-black text-lg py-2 px-6 rounded-2xl inline-flex items-center gap-2 mb-6 shadow-xl">
-                         <ShieldCheck size={24} /> AN TOÀN - ĐÃ XÁC MINH
-                     </div>
-                 )}
+                 ) : status === 'ringing' ? (
+                     <>
+                        {/* TIER 2: DANGEROUS */}
+                        {isDangerous && (
+                            <div className="bg-white text-red-700 font-black text-2xl py-3 px-8 rounded-2xl inline-flex items-center gap-3 animate-bounce shadow-2xl border-4 border-red-200">
+                                <ShieldAlert size={32} /> CẢNH BÁO LỪA ĐẢO
+                            </div>
+                        )}
+                        {/* TIER 3: SUSPICIOUS */}
+                        {isSuspicious && (
+                            <div className="bg-white text-amber-600 font-black text-xl py-3 px-8 rounded-2xl inline-flex items-center gap-3 shadow-xl border-4 border-amber-200">
+                                <AlertTriangle size={28} /> SỐ LẠ - CẢNH GIÁC
+                            </div>
+                        )}
+                        {/* TIER 1: SAFE */}
+                        {isSafe && (
+                            <div className="bg-white/20 backdrop-blur-md text-white font-black text-lg py-2 px-6 rounded-2xl inline-flex items-center gap-2 shadow-lg border border-white/30">
+                                <UserCheck size={24} /> NGƯỜI QUEN
+                            </div>
+                        )}
+                     </>
+                 ) : null}
             </div>
 
             {/* --- CALLER INFO --- */}
             <div className="flex flex-col items-center text-center">
-                <div className={`w-40 h-40 rounded-full flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(0,0,0,0.3)] relative border-4 border-white/20 ${
-                    isScam ? 'bg-red-600' : isSafe ? 'bg-emerald-600' : 'bg-slate-700'
+                {/* Avatar Ring */}
+                <div className={`w-40 h-40 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(0,0,0,0.3)] relative border-4 border-white/20 ${
+                    isDangerous ? 'bg-red-600' : isSafe ? 'bg-green-600' : 'bg-amber-500'
                 }`}>
-                    {contactName ? <User size={80} className="text-white" /> : isScam ? <ShieldAlert size={80} className="text-white" /> : <Globe size={80} className="text-white" />}
+                    {isSafe ? <User size={80} className="text-white" /> : 
+                     isDangerous ? <ShieldAlert size={80} className="text-white" /> : 
+                     <AlertTriangle size={80} className="text-white" />}
                     
                     {/* Ripple Effect for Ringing */}
                     {status === 'ringing' && (
@@ -239,26 +289,34 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
                     )}
                 </div>
 
-                <h2 className={`font-black tracking-tight mb-3 drop-shadow-lg ${isSeniorMode ? 'text-5xl leading-tight' : 'text-4xl'}`}>
+                {/* Name / Number Display */}
+                <h2 className={`font-black tracking-tight mb-2 drop-shadow-lg ${isSeniorMode ? 'text-5xl leading-tight' : 'text-4xl'}`}>
                     {contactName || call.phoneNumber}
                 </h2>
                 
+                {/* Sub-info based on status */}
                 {status === 'connected' ? (
                      <div className="text-3xl font-mono font-bold text-emerald-300 mt-2 tracking-widest">{formatDuration(timer)}</div>
                 ) : (
-                    <div className="space-y-2">
-                        <p className={`font-bold text-white/90 ${isSeniorMode ? 'text-3xl' : 'text-xl'}`}>
-                             {communityInfo?.carrier || "Đang kết nối..."}
-                        </p>
-                        {communityInfo?.communityLabel && (
-                             <div className={`inline-block rounded-xl px-4 py-2 text-lg font-bold mt-2 shadow-lg ${
-                                 isScam ? 'bg-red-800 text-white border border-red-500' : 'bg-white/20 text-white backdrop-blur-md border border-white/30'
-                             }`}>
-                                 "{communityInfo.communityLabel}"
-                             </div>
-                        )}
-                        {!contactName && !isLoadingData && !communityInfo && (
-                             <p className="text-lg text-white/60 font-medium">Số lạ - Chưa có báo cáo</p>
+                    <div className="space-y-1">
+                        {isSafe ? (
+                            <p className="text-xl text-white/90 font-medium">{call.phoneNumber}</p>
+                        ) : (
+                            <>
+                                <p className={`font-bold text-white/90 ${isSeniorMode ? 'text-2xl' : 'text-lg'}`}>
+                                     {communityInfo?.carrier || "Đang kết nối..."}
+                                </p>
+                                {isDangerous && (
+                                    <div className="text-white font-bold bg-red-900/50 px-3 py-1 rounded-lg mt-2 inline-block">
+                                        {dbReportCount > 0 ? `${dbReportCount} lượt báo cáo xấu` : "Phát hiện trong danh sách đen"}
+                                    </div>
+                                )}
+                                {isSuspicious && !isDangerous && (
+                                    <div className="text-white/80 font-medium text-sm mt-1">
+                                        Chưa có thông tin xác thực
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 )}
@@ -270,7 +328,7 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
                  {/* Auto Ended State */}
                  {status === 'auto_ended' && (
                      <div className="text-center">
-                         <p className="text-slate-300 mb-8 text-lg font-medium">Hệ thống đã tự động ngắt kết nối để bảo vệ bạn.</p>
+                         <p className="text-slate-300 mb-8 text-lg font-medium">Hệ thống đã tự động ngắt kết nối.</p>
                          <button 
                              onClick={() => setIncomingCall(null)}
                              className="bg-white hover:bg-slate-100 text-slate-900 w-full py-5 rounded-2xl font-black text-xl shadow-xl transition-transform active:scale-95"
@@ -282,21 +340,21 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
 
                  {/* Ringing State */}
                  {status === 'ringing' && (
-                     <div className={`flex items-center w-full ${isScam ? 'justify-center gap-6' : 'justify-between gap-8'}`}>
+                     <div className={`flex items-center w-full ${isDangerous ? 'justify-center gap-6' : 'justify-around'}`}>
                          
                          {/* Decline Button (Left) */}
                          <div className="flex flex-col items-center gap-3">
                             <button 
                                 onClick={handleDecline}
-                                className={`${isScam ? 'w-16 h-16 bg-white/20 border-2 border-white/30 hover:bg-white/30' : 'w-24 h-24 bg-red-600 hover:bg-red-700 border-4 border-red-700'} rounded-full flex items-center justify-center text-white shadow-2xl transition-transform active:scale-95`}
+                                className={`${isDangerous ? 'w-16 h-16 bg-white/20 border-2 border-white/30 hover:bg-white/30' : 'w-20 h-20 bg-red-600 hover:bg-red-700 border-4 border-red-700'} rounded-full flex items-center justify-center text-white shadow-2xl transition-transform active:scale-95`}
                             >
-                                <PhoneOff size={isScam ? 28 : 40} fill="currentColor" />
+                                <PhoneOff size={isDangerous ? 28 : 36} fill="currentColor" />
                             </button>
-                            <span className="text-base font-bold text-white/90 uppercase tracking-wide">Từ chối</span>
+                            <span className="text-sm font-bold text-white/90 uppercase tracking-wide">Từ chối</span>
                          </div>
 
-                         {/* Block Button (SCAM ONLY - Center) */}
-                         {isScam && (
+                         {/* Block Button (DANGEROUS ONLY - Center) */}
+                         {isDangerous && (
                              <div className="flex flex-col items-center gap-3 -mt-6">
                                 <button 
                                     onClick={() => {
@@ -316,15 +374,15 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
                             <button 
                                 onClick={handleAccept}
                                 className={`${
-                                    isScam 
+                                    isDangerous 
                                     ? 'w-16 h-16 bg-transparent border-2 border-white/30 text-white/50 hover:bg-white/10' 
-                                    : 'w-24 h-24 bg-green-500 hover:bg-green-600 border-4 border-green-600 animate-pulse'
+                                    : 'w-20 h-20 bg-green-500 hover:bg-green-600 border-4 border-green-600 animate-pulse'
                                 } rounded-full flex items-center justify-center shadow-2xl transition-transform active:scale-95 text-white`}
                             >
-                                <Phone size={isScam ? 28 : 40} fill="currentColor" />
+                                <Phone size={isDangerous ? 28 : 36} fill="currentColor" />
                             </button>
-                            <span className={`text-base font-bold uppercase tracking-wide ${isScam ? 'text-white/50' : 'text-white/90'}`}>
-                                {isScam ? 'Vẫn nghe' : 'Trả lời'}
+                            <span className={`text-sm font-bold uppercase tracking-wide ${isDangerous ? 'text-white/50' : 'text-white/90'}`}>
+                                {isDangerous ? 'Vẫn nghe' : 'Trả lời'}
                             </span>
                          </div>
                      </div>
@@ -335,9 +393,9 @@ const CallOverlay: React.FC<CallOverlayProps> = ({ call }) => {
                      <div className="flex justify-center">
                           <button 
                                 onClick={handleHangup}
-                                className="w-28 h-28 bg-red-600 hover:bg-red-700 border-8 border-red-800/50 rounded-full flex items-center justify-center text-white shadow-2xl transition-transform active:scale-95"
+                                className="w-24 h-24 bg-red-600 hover:bg-red-700 border-8 border-red-800/50 rounded-full flex items-center justify-center text-white shadow-2xl transition-transform active:scale-95"
                           >
-                                <PhoneOff size={48} fill="currentColor" />
+                                <PhoneOff size={40} fill="currentColor" />
                           </button>
                      </div>
                  )}

@@ -35,29 +35,87 @@ const ProfileScreen: React.FC = () => {
   return (
     <div className={`p-4 md:p-6 pt-20 md:pt-10 pb-32 min-h-screen max-w-4xl mx-auto animate-in fade-in ${isSeniorMode ? 'text-lg' : ''}`}>
         
-        {/* Header */}
-        <div className="flex items-center gap-5 mb-6">
-            <div className={`rounded-full bg-gradient-premium flex items-center justify-center font-bold text-white text-3xl border-4 border-white shadow-lg relative ${isSeniorMode ? 'w-28 h-28' : 'w-24 h-24'}`}>
-                {user.name?.charAt(0) || <User />}
-                {!isFree && (
-                    <div className="absolute bottom-0 right-0 bg-yellow-400 p-1.5 rounded-full border-4 border-white">
-                        <Crown size={isSeniorMode ? 18 : 14} className="text-white fill-white" />
-                    </div>
-                )}
-            </div>
-            <div>
-                <h1 className={`font-black text-slate-900 ${isSeniorMode ? 'text-4xl' : 'text-3xl'}`}>{user.name}</h1>
-                <p className={`${isSeniorMode ? 'text-lg' : 'text-base'} text-slate-500 font-medium`}>{user.phone}</p>
-                <div className={`inline-flex items-center gap-1 mt-2 font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
-                    isFree 
-                    ? 'bg-slate-100 text-slate-600' 
-                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
-                } ${isSeniorMode ? 'text-sm' : 'text-xs'}`}>
-                    {isFree ? 'Thành viên Free' : (
-                        <><Crown size={isSeniorMode ? 16 : 12} fill="currentColor"/> Premium Member</>
-                    )}
-                </div>
-            </div>
+        {/* Header - REDESIGNED */}
+        <div className="relative mb-8 pt-4">
+             {/* Decorative Background Elements */}
+             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-blue-100/50 rounded-full blur-3xl"></div>
+             <div className="absolute bottom-0 left-0 -ml-20 -mb-10 w-48 h-48 bg-purple-100/50 rounded-full blur-3xl"></div>
+
+             <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-6 md:p-8 shadow-xl shadow-slate-200/60 border border-white relative overflow-hidden group">
+                 <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-blue-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                 
+                 <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-8 text-center md:text-left">
+                     
+                     {/* Avatar Area */}
+                     <div className="relative">
+                         <div className={`rounded-full bg-gradient-to-br from-slate-100 to-white flex items-center justify-center font-black text-slate-400 shadow-[0_8px_30px_rgb(0,0,0,0.06)] border-4 border-white ring-1 ring-slate-100 ${isSeniorMode ? 'w-32 h-32 text-5xl' : 'w-28 h-28 text-4xl'}`}>
+                             {user.name?.charAt(0) || <User />}
+                         </div>
+                         
+                         {/* Badge */}
+                         {isFree ? (
+                             <button 
+                                onClick={() => setShowPremiumModal(true)}
+                                className="absolute -bottom-1 -right-1 bg-slate-900 text-yellow-400 p-2.5 rounded-full border-4 border-white shadow-lg hover:scale-110 transition-transform active:scale-95"
+                                title="Nâng cấp Premium"
+                             >
+                                 <Zap size={isSeniorMode ? 20 : 16} fill="currentColor" />
+                             </button>
+                         ) : (
+                             <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-2.5 rounded-full border-4 border-white shadow-lg animate-bounce-slow">
+                                 <Crown size={isSeniorMode ? 20 : 16} fill="currentColor" />
+                             </div>
+                         )}
+                     </div>
+
+                     {/* Info Area */}
+                     <div className="flex-1 min-w-0">
+                         <div className="flex flex-col md:flex-row items-center md:items-baseline gap-2 mb-2">
+                             <h1 className={`font-black text-slate-900 tracking-tight leading-none truncate max-w-full ${isSeniorMode ? 'text-4xl' : 'text-3xl'}`}>
+                                 {user.name}
+                             </h1>
+                             {/* Plan Badge */}
+                             {isFree ? (
+                                <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-slate-200">
+                                    Thành viên Free
+                                </span>
+                             ) : (
+                                <span className="bg-gradient-to-r from-yellow-100 to-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-amber-200 flex items-center gap-1">
+                                    <Crown size={10} fill="currentColor" /> Premium
+                                </span>
+                             )}
+                         </div>
+                         
+                         <p className={`font-mono font-bold text-slate-400 bg-slate-50 inline-block px-3 py-1 rounded-lg border border-slate-100 mb-5 ${isSeniorMode ? 'text-xl' : 'text-sm'}`}>
+                            {user.phone}
+                         </p>
+
+                         {/* Stats Row */}
+                         <div className="flex items-center justify-center md:justify-start gap-8 border-t border-slate-100 pt-5 w-full">
+                            <div>
+                                <div className={`font-black text-slate-900 leading-none ${isSeniorMode ? 'text-2xl' : 'text-xl'}`}>
+                                    {user.alertHistory?.length || 0}
+                                </div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">Cảnh báo</div>
+                            </div>
+                            <div className="w-px h-8 bg-slate-100"></div>
+                            <div>
+                                <div className={`font-black text-slate-900 leading-none ${isSeniorMode ? 'text-2xl' : 'text-xl'}`}>
+                                    {user.messageHistory?.filter(m => m.result === 'safe').length || 0}
+                                </div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">An toàn</div>
+                            </div>
+                            <div className="w-px h-8 bg-slate-100"></div>
+                            <div>
+                                <div className={`font-black leading-none ${user.riskThreshold < 60 ? 'text-red-500' : 'text-green-500'} ${isSeniorMode ? 'text-2xl' : 'text-xl'}`}>
+                                    {user.riskThreshold}%
+                                </div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">Bảo vệ</div>
+                            </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
         </div>
 
         {/* --- PREMIUM UPGRADE BANNER (If Free) --- */}
