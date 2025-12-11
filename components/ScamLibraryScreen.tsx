@@ -208,15 +208,15 @@ const ScamLibraryScreen: React.FC<ScamLibraryScreenProps> = ({ onOpenTutorial })
                 {searchTerm && <button onClick={() => setSearchTerm('')}><XCircle size={20} className="text-slate-400" /></button>}
            </div>
 
-           {/* Categories */}
-           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+           {/* Categories - HORIZONTAL SCROLL FIX */}
+           <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar">
                 {categories.map(cat => (
                     <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
-                        className={`rounded-xl font-bold whitespace-nowrap transition-all border shadow-sm ${
+                        className={`rounded-xl font-bold whitespace-nowrap flex-shrink-0 transition-all border shadow-sm ${
                             activeCategory === cat ? theme.activeTab : theme.inactiveTab
-                        } ${isSeniorMode ? 'px-5 py-3 text-lg' : 'px-3 py-1.5 text-xs'}`}
+                        } ${isSeniorMode ? 'px-6 py-3 text-lg' : 'px-4 py-2 text-sm'}`}
                     >
                         {cat}
                     </button>
@@ -241,7 +241,7 @@ const ScamLibraryScreen: React.FC<ScamLibraryScreenProps> = ({ onOpenTutorial })
                          <span className={`${theme.textSub} font-bold uppercase tracking-wider block mb-1 ${isSeniorMode ? 'text-sm' : 'text-[10px]'}`}>
                              {scam.type}
                          </span>
-                         <h3 className={`${theme.textMain} leading-tight ${titleClass}`}>{scam.title}</h3>
+                         <h3 className={`${theme.textMain} leading-tight ${titleClass} line-clamp-2`}>{scam.title}</h3>
                      </div>
                  </div>
              </div>

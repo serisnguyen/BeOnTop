@@ -33,7 +33,7 @@ const ProfileScreen: React.FC = () => {
   ];
 
   return (
-    <div className={`p-4 md:p-6 pt-20 md:pt-10 pb-32 min-h-screen max-w-4xl mx-auto animate-in fade-in ${isSeniorMode ? 'text-lg' : ''}`}>
+    <div className={`p-4 md:p-6 pt-20 md:pt-10 pb-40 min-h-screen max-w-4xl mx-auto animate-in fade-in ${isSeniorMode ? 'text-lg' : ''}`}>
         
         {/* Header - REDESIGNED */}
         <div className="relative mb-8 pt-4">
@@ -217,12 +217,14 @@ const ProfileScreen: React.FC = () => {
                             </h4>
                             <p className={`text-slate-400 mt-0.5 ${isSeniorMode ? 'text-base' : 'text-xs'}`}>Chữ to, giao diện đơn giản, dễ nhìn hơn.</p>
                         </div>
-                        <button 
+                        
+                        {/* Custom iOS Toggle */}
+                        <div 
                             onClick={toggleSeniorMode}
-                            className={`rounded-full transition-colors relative ${isSeniorMode ? 'w-16 h-9 bg-purple-600' : 'w-14 h-8 bg-slate-200'}`}
+                            className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-colors duration-300 relative ${isSeniorMode ? 'bg-purple-600' : 'bg-slate-200'}`}
                         >
-                            <div className={`bg-white rounded-full absolute top-1 transition-all shadow-sm ${isSeniorMode ? 'w-7 h-7 left-8' : 'w-6 h-6 left-1'}`}></div>
-                        </button>
+                            <div className={`w-6 h-6 bg-white rounded-full shadow-md absolute top-1 transition-all duration-300 ${isSeniorMode ? 'left-[calc(100%-1.75rem)]' : 'left-1'}`}></div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -278,13 +280,13 @@ const ProfileScreen: React.FC = () => {
                             </h4>
                             <p className={`text-slate-400 mt-0.5 ${isSeniorMode ? 'text-base' : 'text-xs'}`}>Tự tắt máy nếu số gọi đến là lừa đảo (Scam).</p>
                         </div>
-                        <button 
+                        {/* Standard toggle for other settings */}
+                        <div 
                             onClick={() => updateSettings({ autoHangupHighRisk: !user.autoHangupHighRisk })}
-                            className={`rounded-full transition-colors relative ${user.autoHangupHighRisk ? 'bg-slate-800' : 'bg-slate-200'} ${isSeniorMode ? 'w-14 h-8' : 'w-12 h-7'}`}
-                            disabled={isFree}
+                            className={`w-12 h-7 rounded-full relative cursor-pointer transition-colors duration-300 ${user.autoHangupHighRisk ? 'bg-slate-800' : 'bg-slate-200'}`}
                         >
-                            <div className={`bg-white rounded-full absolute top-1 transition-all shadow-sm ${user.autoHangupHighRisk ? (isSeniorMode ? 'left-7' : 'left-6') : 'left-1'} ${isSeniorMode ? 'w-6 h-6' : 'w-5 h-5'}`}></div>
-                        </button>
+                            <div className={`absolute top-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform duration-300 ${user.autoHangupHighRisk ? 'translate-x-6' : 'translate-x-1'}`}></div>
+                        </div>
                     </div>
                 </div>
             </section>

@@ -149,31 +149,31 @@ const CallHistoryScreen: React.FC<CallHistoryScreenProps> = ({ onBack }) => {
                             onClick={() => setExpandedId(expandedId === call.id ? null : call.id)}
                             className={`bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden transition-all cursor-pointer hover:shadow-md ${isSeniorMode ? 'p-6' : 'p-0'}`}
                         >
-                        <div className="p-5 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
+                        <div className="p-5 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
                                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
                                 call.direction === 'incoming' ? 'bg-blue-50' : 'bg-green-50'
                                 }`}>
                                 {call.direction === 'incoming' ? <PhoneIncoming className="text-blue-600" size={20} /> : <PhoneOutgoing className="text-green-600" size={20} />}
                                 </div>
-                                <div>
-                                <h3 className="font-bold text-slate-900 text-base">
-                                    {call.contactName || call.phoneNumber}
-                                </h3>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-slate-400 font-medium">{formatTime(call.timestamp)}</span>
-                                    {call.hasRecording && (
-                                        <span className="flex items-center gap-1 text-[10px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded font-bold border border-red-100">
-                                            <Disc size={10} /> REC
-                                        </span>
-                                    )}
-                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="font-bold text-slate-900 text-base truncate pr-2">
+                                        {call.contactName || call.phoneNumber}
+                                    </h3>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{formatTime(call.timestamp)}</span>
+                                        {call.hasRecording && (
+                                            <span className="flex items-center gap-1 text-[10px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded font-bold border border-red-100 whitespace-nowrap">
+                                                <Disc size={10} /> REC
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             
                             {/* Risk Score Bubble */}
                             {call.aiAnalysis && (
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-[10px] border-4 ${
+                                <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-black text-[10px] border-4 ${
                                     call.aiAnalysis.riskScore > 70 ? 'border-red-100 bg-red-500 text-white' : 
                                     call.aiAnalysis.riskScore > 30 ? 'border-amber-100 bg-amber-500 text-white' : 
                                     'border-green-100 bg-green-500 text-white'
@@ -193,7 +193,7 @@ const CallHistoryScreen: React.FC<CallHistoryScreenProps> = ({ onBack }) => {
                                                 <span className="font-black uppercase text-xs">AI Đánh giá</span>
                                         </div>
                                     </div>
-                                    <p className="text-sm font-medium mb-2">"{call.aiAnalysis.explanation}"</p>
+                                    <p className="text-sm font-medium mb-2 break-words">"{call.aiAnalysis.explanation}"</p>
                                     
                                     {/* Playback Simulation */}
                                     {call.hasRecording && (
@@ -204,7 +204,7 @@ const CallHistoryScreen: React.FC<CallHistoryScreenProps> = ({ onBack }) => {
                                             <div className="h-1 bg-current/20 flex-1 rounded-full overflow-hidden">
                                                 <div className="w-1/3 h-full bg-current"></div>
                                             </div>
-                                            <span className="text-[10px] font-mono font-bold">00:15 / {formatDuration(call.duration)}</span>
+                                            <span className="text-[10px] font-mono font-bold whitespace-nowrap">00:15 / {formatDuration(call.duration)}</span>
                                         </div>
                                     )}
                                 </div>

@@ -131,7 +131,7 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
     };
 
     const getTagBadge = (tag: string) => {
-        const classes = `rounded-full font-bold uppercase border ${isSeniorMode ? 'px-4 py-2 text-base' : 'px-3 py-1 text-xs'}`;
+        const classes = `rounded-full font-bold uppercase border whitespace-nowrap ${isSeniorMode ? 'px-4 py-2 text-base' : 'px-3 py-1 text-xs'}`;
         switch (tag) {
             case 'scam': return <span className={`${classes} bg-red-100 text-red-700 border-red-200`}>Lừa đảo</span>;
             case 'spam': return <span className={`${classes} bg-amber-100 text-amber-700 border-amber-200`}>Spam / QC</span>;
@@ -171,7 +171,7 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
                     <input 
                         type="tel" 
                         placeholder="Nhập số điện thoại..." 
-                        className={`flex-1 bg-transparent outline-none px-4 font-bold text-slate-800 placeholder:text-slate-400 ${isSeniorMode ? 'text-2xl py-2' : 'text-lg'}`}
+                        className={`flex-1 bg-transparent outline-none px-4 font-bold text-slate-800 placeholder:text-slate-400 min-w-0 ${isSeniorMode ? 'text-2xl py-2' : 'text-lg'}`}
                         value={searchTerm}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
@@ -186,7 +186,7 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
                     <button 
                         onClick={() => handleSearch()}
                         disabled={isLoading || searchTerm.length < 3 || isLimitReached}
-                        className={`bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold transition-all flex items-center gap-2 shadow-md active:scale-95 disabled:opacity-50 ${isSeniorMode ? 'px-8 py-4 text-xl' : 'px-6 py-3'}`}
+                        className={`bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold transition-all flex items-center gap-2 shadow-md active:scale-95 disabled:opacity-50 flex-shrink-0 ${isSeniorMode ? 'px-8 py-4 text-xl' : 'px-6 py-3'}`}
                         aria-label="Thực hiện tra cứu"
                     >
                         {isLoading ? <Loader2 className="animate-spin" /> : <Search size={isSeniorMode ? 28 : 20} />}
@@ -206,7 +206,7 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
                         </div>
                         <button 
                             onClick={() => setShowPremiumModal(true)}
-                            className="bg-white text-slate-900 px-4 py-2 rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors flex items-center gap-2"
+                            className="bg-white text-slate-900 px-4 py-2 rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors flex items-center gap-2 whitespace-nowrap"
                             aria-label="Nâng cấp Premium"
                         >
                             <Crown size={14} className="text-yellow-500 fill-current" /> Nâng cấp
@@ -241,8 +241,8 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
                                 <div className={`p-8 text-center relative ${risk.bg}`}>
                                     {/* Status Label */}
                                     <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full font-black uppercase text-xs tracking-wider mb-6 bg-white border ${risk.border} ${risk.text} shadow-sm`}>
-                                        <risk.Icon size={14} fill="currentColor" className="opacity-20" />
-                                        {risk.label}
+                                        <risk.Icon size={14} fill="currentColor" className="opacity-20 flex-shrink-0" />
+                                        <span className="whitespace-nowrap truncate">{risk.label}</span>
                                     </div>
 
                                     {/* Big Icon */}
@@ -250,10 +250,10 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
                                         <risk.Icon size={isSeniorMode ? 64 : 48} />
                                     </div>
                                     
-                                    <h3 className={`font-black mb-1 ${isSeniorMode ? 'text-5xl' : 'text-3xl'}`}>{result.phoneNumber}</h3>
-                                    <p className={`font-bold text-slate-500 mb-4 ${isSeniorMode ? 'text-2xl' : ''}`}>{result.carrier}</p>
+                                    <h3 className={`font-black mb-1 truncate px-2 ${isSeniorMode ? 'text-5xl' : 'text-3xl'}`}>{result.phoneNumber}</h3>
+                                    <p className={`font-bold text-slate-500 mb-4 truncate px-4 ${isSeniorMode ? 'text-2xl' : ''}`}>{result.carrier}</p>
                                     
-                                    <div className="flex justify-center gap-2 mb-6">
+                                    <div className="flex flex-wrap justify-center gap-2 mb-6">
                                         {result.tags.map((tag, i) => <div key={i}>{getTagBadge(tag)}</div>)}
                                         {result.tags.length === 0 && <span className="text-slate-400 italic text-sm">Chưa có nhãn</span>}
                                     </div>
@@ -273,7 +273,7 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
                                 <div className={`p-6 ${isSeniorMode ? 'p-8' : ''}`}>
                                     <h4 className="font-bold text-slate-500 uppercase text-xs tracking-wider mb-4">Thông tin cộng đồng</h4>
                                     <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 mb-6">
-                                        <p className={`font-medium text-slate-800 ${isSeniorMode ? 'text-2xl' : 'text-base'}`}>
+                                        <p className={`font-medium text-slate-800 break-words ${isSeniorMode ? 'text-2xl' : 'text-base'}`}>
                                             {result.communityLabel ? `"${result.communityLabel}"` : "Số điện thoại này chưa có nhiều dữ liệu báo cáo từ cộng đồng. Hãy cẩn trọng nếu là số lạ."}
                                         </p>
                                     </div>
@@ -326,20 +326,20 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
                                     onClick={() => handleSearch(spammer.phone)}
                                     className={`hover:bg-slate-50 cursor-pointer flex items-center justify-between group transition-colors ${isSeniorMode ? 'p-6' : 'p-4'}`}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`font-black text-slate-400 w-6 ${isSeniorMode ? 'text-2xl' : 'text-lg'}`}>{idx + 1}</div>
-                                        <div>
-                                            <div className={`font-bold text-slate-800 group-hover:text-blue-600 transition-colors ${isSeniorMode ? 'text-xl' : ''}`}>
+                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                        <div className={`font-black text-slate-400 w-6 flex-shrink-0 ${isSeniorMode ? 'text-2xl' : 'text-lg'}`}>{idx + 1}</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className={`font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate ${isSeniorMode ? 'text-xl' : ''}`}>
                                                 {spammer.phone}
                                             </div>
-                                            <div className={`font-medium ${spammer.isScam ? 'text-red-500' : 'text-amber-500'} flex items-center gap-1 ${isSeniorMode ? 'text-base' : 'text-xs'}`}>
-                                                <ShieldAlert size={isSeniorMode ? 14 : 10} /> {spammer.label}
+                                            <div className={`font-medium ${spammer.isScam ? 'text-red-500' : 'text-amber-500'} flex items-center gap-1 ${isSeniorMode ? 'text-base' : 'text-xs'} truncate`}>
+                                                <ShieldAlert size={isSeniorMode ? 14 : 10} className="flex-shrink-0" /> <span className="truncate">{spammer.label}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right flex-shrink-0 ml-2">
                                         <div className={`font-bold text-slate-500 ${isSeniorMode ? 'text-base' : 'text-xs'}`}>{spammer.reports} lượt báo</div>
-                                        {spammer.trend === 'up' && <span className="text-[10px] text-red-500 font-bold">▲ Tăng mạnh</span>}
+                                        {spammer.trend === 'up' && <span className="text-[10px] text-red-500 font-bold block">▲ Tăng mạnh</span>}
                                     </div>
                                 </div>
                             ))}
@@ -353,7 +353,7 @@ const LookupScreen: React.FC<LookupScreenProps> = ({ onBack }) => {
             {showReportModal && (
                 <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in duration-200">
-                        <h3 className={`font-bold text-slate-900 mb-4 text-center ${isSeniorMode ? 'text-2xl' : 'text-xl'}`}>Báo cáo số {searchTerm}</h3>
+                        <h3 className={`font-bold text-slate-900 mb-4 text-center truncate ${isSeniorMode ? 'text-2xl' : 'text-xl'}`}>Báo cáo số {searchTerm}</h3>
                         <div className="grid gap-3">
                             <button onClick={() => handleReport('scam')} className={`bg-red-50 text-red-700 rounded-xl font-bold flex items-center gap-3 border border-red-100 hover:bg-red-100 transition-colors ${isSeniorMode ? 'p-6 text-xl' : 'p-4'}`}>
                                 <ShieldAlert size={isSeniorMode ? 32 : 24} /> Lừa đảo / Giả danh

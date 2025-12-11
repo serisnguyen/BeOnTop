@@ -123,57 +123,61 @@ const AppContent: React.FC = () => {
               </button> 
           </header>
 
-          {/* Scrollable Content - Added more padding bottom (pb-36) for iPhone 12 Safe Area & Dock */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-36 lg:pb-0 relative z-10 touch-pan-y">
+          {/* Scrollable Content - INCREASED PADDING BOTTOM TO 180px */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar pb-[180px] lg:pb-0 relative z-10 touch-pan-y">
              <Suspense fallback={<LoadingFallback />}>
                {renderContent()}
              </Suspense>
           </div>
 
           {/* --- MOBILE NAVIGATION BAR --- */}
-          <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center pb-safe">
+          <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center">
               {isSeniorMode ? (
-                  /* SENIOR MODE NAV */
-                  <div className="pointer-events-auto bg-[#FFFDE7] w-full border-t-2 border-amber-200 shadow-[0_-4px_20px_rgba(217,119,6,0.15)] px-1 pt-2 pb-1">
-                      <div className="flex justify-around items-end h-16 w-full">
+                  /* SENIOR MODE NAV - GROUNDED */
+                  <div className="pointer-events-auto bg-[#FFFDE7] w-full border-t-2 border-amber-200 shadow-[0_-4px_20px_rgba(217,119,6,0.15)] px-1 pt-2 pb-safe">
+                      <div className="flex justify-around items-end h-16 w-full relative">
                           <NavTabSenior icon={<Home />} label="Nhà" isActive={activeTab === 'home'} onClick={() => handleNavClick('home')} />
+                          <NavTabSenior icon={<Search />} label="Tra cứu" isActive={activeTab === 'lookup'} onClick={() => handleNavClick('lookup')} />
                           <NavTabSenior icon={<MessageSquareText />} label="Tin nhắn" isActive={activeTab === 'messagescan'} onClick={() => handleNavClick('messagescan')} />
-                          <NavTabSenior icon={<BookOpen />} label="Thư viện" isActive={activeTab === 'library'} onClick={() => handleNavClick('library')} />
                           
-                          {/* Center Chat Button */}
-                          <div className="relative -top-5 mx-1 flex-shrink-0">
+                          {/* Center Chat Button - Elevated in grounded bar */}
+                          <div className="relative -top-6 mx-1 flex-shrink-0 z-10">
                               <button onClick={() => handleNavClick('chat')} className={`w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 border-4 border-[#FFFDE7] shadow-xl flex items-center justify-center text-white transition-transform active:scale-95 ${activeTab === 'chat' ? 'ring-4 ring-amber-200' : ''}`}>
-                                  <Bot size={32} fill="currentColor" />
+                                  <Sparkles size={32} fill={activeTab === 'chat' ? "currentColor" : "none"} strokeWidth={2} />
                               </button>
                               <span className="absolute -bottom-5 w-full text-center text-[10px] font-bold text-amber-900">Trợ lý</span>
                           </div>
 
                           <NavTabSenior icon={<ScanFace />} label="Quét mặt" isActive={activeTab === 'scanner'} onClick={() => handleNavClick('scanner')} />
-                          <NavTabSenior icon={<Search />} label="Tra cứu" isActive={activeTab === 'lookup'} onClick={() => handleNavClick('lookup')} />
+                          <NavTabSenior icon={<BookOpen />} label="Thư viện" isActive={activeTab === 'library'} onClick={() => handleNavClick('library')} />
                           <NavTabSenior icon={<UserCircle />} label="Cá nhân" isActive={activeTab === 'profile'} onClick={() => handleNavClick('profile')} />
                       </div>
                   </div>
               ) : (
-                  /* NORMAL MODE NAV: FLOATING DOCK - OPTIMIZED FOR IPHONE 12 */
-                  <div className="pointer-events-auto bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.12)] rounded-3xl px-3 py-3 mb-6 mx-4 flex items-center justify-between gap-1 w-full max-w-sm ring-1 ring-black/5">
-                      <NavTabNormal icon={<Home />} isActive={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-                      <NavTabNormal icon={<Search />} isActive={activeTab === 'lookup'} onClick={() => setActiveTab('lookup')} />
-                      <NavTabNormal icon={<MessageSquareText />} isActive={activeTab === 'messagescan'} onClick={() => setActiveTab('messagescan')} />
-                      
-                      {/* Chat Button */}
-                      <button 
-                        onClick={() => setActiveTab('chat')}
-                        className={`w-14 h-14 flex-shrink-0 rounded-2xl flex items-center justify-center transition-all shadow-lg mx-1 -mt-6 active:scale-95 ${activeTab === 'chat' ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-400/40 ring-4 ring-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 ring-4 ring-white'}`}
-                      >
-                          <Sparkles size={28} fill={activeTab === 'chat' ? "currentColor" : "none"} strokeWidth={2} />
-                      </button>
+                  /* NORMAL MODE NAV - GROUNDED (UPDATED) */
+                  <div className="pointer-events-auto bg-white/95 backdrop-blur-xl border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] w-full px-2 pt-2 pb-safe">
+                      <div className="flex items-end justify-around gap-1 w-full max-w-lg mx-auto relative h-14">
+                          <NavTabNormal icon={<Home />} isActive={activeTab === 'home'} onClick={() => setActiveTab('home')} />
+                          <NavTabNormal icon={<Search />} isActive={activeTab === 'lookup'} onClick={() => setActiveTab('lookup')} />
+                          <NavTabNormal icon={<MessageSquareText />} isActive={activeTab === 'messagescan'} onClick={() => setActiveTab('messagescan')} />
+                          
+                          {/* Chat Button - Elevated in grounded bar */}
+                          <div className="relative -top-6 px-2 z-10">
+                             <button 
+                                onClick={() => setActiveTab('chat')}
+                                className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-lg active:scale-95 border-4 border-white ${activeTab === 'chat' ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-400/40 ring-2 ring-blue-100' : 'bg-slate-900 text-white ring-2 ring-slate-100'}`}
+                              >
+                                  <Sparkles size={26} fill={activeTab === 'chat' ? "currentColor" : "none"} strokeWidth={2} />
+                              </button>
+                          </div>
 
-                      <NavTabNormal icon={<ScanFace />} isActive={activeTab === 'scanner'} onClick={() => setActiveTab('scanner')} />
-                      <NavTabNormal icon={<BookOpen />} isActive={activeTab === 'library'} onClick={() => setActiveTab('library')} />
-                      <NavTabNormal icon={<UserCircle />} isActive={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
+                          <NavTabNormal icon={<ScanFace />} isActive={activeTab === 'scanner'} onClick={() => setActiveTab('scanner')} />
+                          <NavTabNormal icon={<BookOpen />} isActive={activeTab === 'library'} onClick={() => setActiveTab('library')} />
+                          <NavTabNormal icon={<UserCircle />} isActive={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
+                      </div>
                   </div>
               )}
-          </nav>
+          </div>
 
       </main>
 
@@ -198,41 +202,35 @@ const App: React.FC = () => {
 const NavTabNormal = ({ icon, isActive, onClick }: any) => (
     <button 
         onClick={onClick}
-        className={`flex-1 h-11 rounded-xl transition-all relative flex items-center justify-center active:scale-90 ${isActive ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-slate-600'}`}
+        className={`flex-1 h-full pb-2 rounded-xl transition-all relative flex flex-col items-center justify-end active:scale-90 gap-1 ${isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
     >
         {React.cloneElement(icon, { 
             size: 24, 
             strokeWidth: isActive ? 2.5 : 2,
             className: "transition-transform duration-300"
         })}
-        {isActive && <span className="absolute -bottom-1 w-1 h-1 bg-blue-600 rounded-full"></span>}
+        {isActive && <span className="w-1 h-1 bg-blue-600 rounded-full"></span>}
     </button>
 );
 
 const NavTabSenior = ({ icon, label, isActive, onClick }: any) => (
     <button 
         onClick={onClick}
-        className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 active:scale-95 transition-transform px-1 ${isActive ? 'text-amber-800' : 'text-amber-800/50'}`}
+        className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 active:scale-95 transition-transform px-1 pb-1 ${isActive ? 'text-amber-800' : 'text-amber-800/50'}`}
     >
-        <div className={`p-1.5 rounded-2xl transition-colors ${isActive ? 'bg-amber-200' : 'bg-transparent'}`}>
-            {React.cloneElement(icon, { size: 22, strokeWidth: 2.5 })}
-        </div>
-        <span className="text-[9px] font-bold leading-tight whitespace-nowrap">{label}</span>
+        {React.cloneElement(icon, { size: 28, strokeWidth: 2.5 })}
+        <span className={`text-[10px] font-bold ${isActive ? 'text-amber-900' : 'text-amber-800/60'}`}>{label}</span>
     </button>
 );
 
 const NavSideItem = ({ icon, label, isActive, onClick }: any) => (
-  <button 
-    onClick={onClick}
-    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all font-bold text-sm group relative overflow-hidden ${
-      isActive 
-        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
-        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-    }`}
-  >
-    {React.cloneElement(icon, { className: isActive ? "animate-pulse" : "" })}
-    <span>{label}</span>
-  </button>
+    <button 
+        onClick={onClick}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+    >
+        {icon}
+        <span>{label}</span>
+    </button>
 );
 
 export default App;
